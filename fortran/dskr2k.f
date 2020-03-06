@@ -334,7 +334,7 @@
                       CALL DGEMM('N','T',LENJ,LENI,LENL,-ALPHA,
      +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
      +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                           1d0,
+     +                           ONE,
      +                           C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
                     END IF
                   END IF
