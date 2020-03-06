@@ -157,7 +157,7 @@
       DOUBLE PRECISION ZERO
       PARAMETER (ZERO= 0.0D+0)
       INTEGER MBLK
-      PARAMETER (MBLK= 8)
+      PARAMETER (MBLK= 32)
 *     ..
 *
 *     Test the input parameters.
