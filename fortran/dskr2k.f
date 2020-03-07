@@ -307,40 +307,11 @@
 *
                   IF (MI.EQ.MJ) THEN
 *
-*                   Vanilla core along the diagonal.
+*                   Vanilla kernel along the diagonal.
 *
-                    DO 130 J = 1,LENJ
-                      J_ = MJ*MBLK-MBLK + J
-                      IF (BETA.EQ.ZERO) THEN
-                        DO 90 I = 1,J
-                          I_ = MI*MBLK-MBLK + I
-                          C(I_,J_) = ZERO
-   90                   CONTINUE
-                      ELSE IF (TBETA.NE.ONE) THEN
-                        DO 100 I = 1,J - 1
-                          I_ = MI*MBLK-MBLK + I
-                          C(I_,J_) = TBETA*C(I_,J_)
-  100                   CONTINUE
-                        C(J_,J_) = ZERO
-                      ELSE
-                        C(J_,J_) = ZERO
-                      END IF
-                      DO 120 L = 1,LENL
-                        L_ = ML*MBLK-MBLK + L
-                        IF ((A(J_,L_).NE.ZERO)  .OR. 
-     +                      (B(J_,L_).NE.ZERO)) THEN
-                          TEMP1 = ALPHA*B(J_,L_)
-                          TEMP2 = ALPHA*A(J_,L_)
-                          DO 110 I = 1,J - 1
-                            I_ = MI*MBLK-MBLK + I
-                            C(I_,J_) = C(I_,J_) + A(I_,L_)*TEMP1 -
-     +                                 B(I_,L_)*TEMP2
-  110                     CONTINUE
-*                         I guess this is unnecessary.
-                          C(J_,J_) = ZERO
-                        END IF
-  120                 CONTINUE
-  130               CONTINUE
+                    CALL DMSKR2K(LENI,LENJ,LENL,ALPHA,
+     +                           C(3,1),C(3,2),TBETA,
+     +                           C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                   ELSE
 *
 *                   Use GEMM core here. 
@@ -457,7 +428,7 @@
       DOUBLE PRECISION TEMP
       INTEGER I,J,L
 *
-*     Main execution of kernel.
+*     Execution of microkernel.
 *
       DO 300 J = 1,LENJ
           IF (BETA.NE.ONE) THEN
@@ -472,6 +443,54 @@
   330         CONTINUE
   320     CONTINUE
   300 CONTINUE
+*
+      RETURN
+      END
+*
+*     Auxilliary core MSKR2K('N','U').
+*
+      SUBROUTINE DMSKR2K(LENI,LENJ,LENL,ALPHA,A,B,BETA,C,LDC)
+*     .. Arguments ..
+      INTEGER LENI,LENJ,LENL,LDC
+      DOUBLE PRECISION BETA,ALPHA
+      DOUBLE PRECISION C(LDC,*)
+      DOUBLE PRECISION A(LENI,*),B(LENJ,*)
+*     .. Parameters ..
+      DOUBLE PRECISION ONE
+      PARAMETER (ONE= 1.0D+0)
+      DOUBLE PRECISION ZERO
+      PARAMETER (ZERO= 0.0D+0)
+*     .. Local variables ..
+      DOUBLE PRECISION TEMP1,TEMP2
+      INTEGER I,J,L
+*
+*     Execution of microkernel.
+*
+      DO 130 J = 1,LENJ
+          IF (BETA.EQ.ZERO) THEN
+              DO 90 I = 1,J
+                  C(I,J) = ZERO
+   90         CONTINUE
+          ELSE IF (BETA.NE.ONE) THEN
+              DO 100 I = 1,J - 1
+                  C(I,J) = BETA*C(I,J)
+  100         CONTINUE
+              C(J,J) = ZERO
+          ELSE
+              C(J,J) = ZERO
+          END IF
+          DO 120 L = 1,LENL
+              IF ((A(J,L).NE.ZERO)  .OR. 
+     +            (B(J,L).NE.ZERO)) THEN
+                  TEMP1 = ALPHA*B(J,L)
+                  TEMP2 = ALPHA*A(J,L)
+                  DO 110 I = 1,J - 1
+                      C(I,J) = C(I,J) + A(I,L)*TEMP1 - B(I,L)*TEMP2
+  110             CONTINUE
+                  C(J,J) = ZERO
+              END IF
+  120     CONTINUE
+  130 CONTINUE
 *
       RETURN
       END
