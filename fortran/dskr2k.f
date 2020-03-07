@@ -140,7 +140,6 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL XERBLA
-      EXTERNAL DGEMM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC MAX
@@ -157,8 +156,18 @@
       DOUBLE PRECISION ZERO
       PARAMETER (ZERO= 0.0D+0)
       INTEGER MBLK
-      PARAMETER (MBLK= 32)
 *     ..
+*
+*     Prepare scratchpad space.
+*
+      IF (LDC.GE.18) THEN
+*         SPMA =>C(3,1)
+*         SPMB =>C(3,2)
+          MBLK = 4
+      ELSE
+*         Do not do blocking.
+          MBLK = N
+      END IF
 *
 *     Test the input parameters.
 *
@@ -277,12 +286,25 @@
                 ELSE
                   TBETA = 1
                 END IF
+*
+*               Packs memory for fast execution.
+*
+                IF (NBLK.NE.1) 
+     +            CALL DMPACK(LENJ,LENL,
+     +                        B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
+     +                        C(3,2))
+*
                 DO 111 MI = 1,NBLK
                   IF (MI.EQ.NBLK.AND.NBLK_.GT.0) THEN
                     LENI = NBLK_
                   ELSE
                     LENI = MBLK
                   END IF
+                  IF (NBLK.NE.1)
+     +              CALL DMPACK(LENI,LENL,
+     +                          A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
+     +                          C(3,1))
+*
                   IF (MI.EQ.MJ) THEN
 *
 *                   Vanilla core along the diagonal.
@@ -325,17 +347,13 @@
 *                   Implementation is out of the box.
 *
                     IF (MI.LT.MJ) THEN
-                      CALL DGEMM('N','T',LENI,LENJ,LENL,ALPHA,
-     +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
-     +                           TBETA,
-     +                           C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
+                      CALL DMGEMM(LENI,LENJ,LENL,ALPHA,
+     +                            C(3,1),C(3,2),TBETA,
+     +                            C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                     ELSE
-                      CALL DGEMM('N','T',LENJ,LENI,LENL,-ALPHA,
-     +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
-     +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                           ONE,
-     +                           C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
+                      CALL DMGEMM(LENJ,LENI,LENL,-ALPHA,
+     +                            C(3,2),C(3,1),TBETA,
+     +                            C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
                     END IF
                   END IF
   111           CONTINUE
@@ -423,3 +441,50 @@
 *     End of DSKR2K.
 *
       END
+*
+*     Auxilliary core MGEMM('N','T').
+*
+      SUBROUTINE DMGEMM(LENI,LENJ,LENL,ALPHA,A,B,BETA,C,LDC)
+*     .. Arguments ..
+      INTEGER LENI,LENJ,LENL,LDC
+      DOUBLE PRECISION BETA,ALPHA
+      DOUBLE PRECISION C(LDC,*)
+      DOUBLE PRECISION A(LENI,*),B(LENJ,*)
+*     .. Parameters ..
+      DOUBLE PRECISION ONE
+      PARAMETER (ONE= 1.0D+0)
+*     .. Local variables ..
+      DOUBLE PRECISION TEMP
+      INTEGER I,J,L
+*
+*     Main execution of kernel.
+*
+      DO 300 J = 1,LENJ
+          IF (BETA.NE.ONE) THEN
+              DO 310 I = 1,LENI
+                  C(I,J) = C(I,J)*BETA
+  310         CONTINUE
+          END IF
+          DO 320 L = 1,LENL
+              TEMP = B(J,L)*ALPHA
+              DO 330 I = 1,LENI
+                  C(I,J) = C(I,J) + TEMP*A(I,L)
+  330         CONTINUE
+  320     CONTINUE
+  300 CONTINUE
+*
+      RETURN
+      END
+*
+*     Memory packing.
+*
+      SUBROUTINE DMPACK(M,N,A,LDA,T)
+*     .. Arguments ..
+      INTEGER M,N,LDA
+      DOUBLE PRECISION A(LDA,*),T(M,*)
+*
+*     Pack to tight memory.
+*
+      T(1:M,1:N) = A(1:M,1:N)
+      END
+
