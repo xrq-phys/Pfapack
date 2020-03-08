@@ -161,18 +161,8 @@
       DOUBLE PRECISION ZERO
       PARAMETER (ZERO= 0.0D+0)
       INTEGER MBLK
+      PARAMETER (MBLK= 16)
 *     ..
-*
-*     Prepare scratchpad space.
-*
-      IF (LDC.GE.18) THEN
-*         SPMA =>C(3,1)
-*         SPMB =>C(3,2)
-          MBLK = 4
-      ELSE
-*         Do not do blocking.
-          MBLK = N
-      END IF
 *
 *     Test the input parameters.
 *
@@ -292,37 +282,21 @@
                   TBETA = 1
                 END IF
 *
-*               Packs memory for fast execution.
-*
-                IF (NBLK.NE.1) 
-     +            CALL DMPACK(LENJ,LENL,ALPHA,
-     +                        B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
-     +                        C(3,2))
-*
                 DO 111 MI = 1,NBLK
                   IF (MI.EQ.NBLK.AND.NBLK_.GT.0) THEN
                     LENI = NBLK_
                   ELSE
                     LENI = MBLK
                   END IF
-                  IF (NBLK.NE.1) THEN
-                    IF (MI.LE.MJ) THEN
-                      CALL DMPACK(LENI,LENL,ONE,
-     +                            A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                            C(3,1))
-                    ELSE
-                      CALL DMPACK(LENI,LENL,-ONE,
-     +                            A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                            C(3,1))
-                    END IF
-                  END IF
 *
                   IF (MI.EQ.MJ) THEN
 *
 *                   Vanilla kernel along the diagonal.
 *
-                    CALL DMSKR2K(LENI,LENJ,LENL,
-     +                           C(3,1),C(3,2),TBETA,
+                    CALL DMSKR2K(LENI,LENJ,LENL,ALPHA,
+     +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
+     +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
+     +                           TBETA,
      +                           C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                   ELSE
 *
@@ -330,12 +304,16 @@
 *                   Implementation is out of the box.
 *
                     IF (MI.LT.MJ) THEN
-                      CALL DMGEMM(LENI,LENJ,LENL,.TRUE.,
-     +                            C(3,1),C(3,2),TBETA,
+                      CALL DMGEMM(LENI,LENJ,LENL,ALPHA,
+     +                            A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
+     +                            B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
+     +                            TBETA,
      +                            C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                     ELSE
-                      CALL DMGEMM(LENJ,LENI,LENL,.TRUE.,
-     +                            C(3,2),C(3,1),TBETA,
+                      CALL DMGEMM(LENJ,LENI,LENL,-ALPHA,
+     +                            B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
+     +                            A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
+     +                            TBETA,
      +                            C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
                     END IF
                   END IF
@@ -427,13 +405,12 @@
 *
 *     Auxilliary core MGEMM('N','T').
 *
-      SUBROUTINE DMGEMM(LENI,LENJ,LENL,PM,A,B,BETA,C,LDC)
+      SUBROUTINE DMGEMM(LENI,LENJ,LENL,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
 *     .. Arguments ..
-      INTEGER LENI,LENJ,LENL,LDC
-      LOGICAL PM
-      DOUBLE PRECISION BETA
+      INTEGER LENI,LENJ,LENL,LDA,LDB,LDC
+      DOUBLE PRECISION BETA,ALPHA
       DOUBLE PRECISION C(LDC,*)
-      DOUBLE PRECISION A(LENI,*),B(LENJ,*)
+      DOUBLE PRECISION A(LDA,*),B(LDB,*)
 *     .. Parameters ..
       DOUBLE PRECISION ONE
       PARAMETER (ONE= 1.0D+0)
@@ -443,17 +420,33 @@
 *     .. C kernel ..
       EXTERNAL ADDDOTT4X4
 *
-*     Execution of microkernel.
+*     Execution of macrokernel.
 *
-      IF (LENI.EQ.4.AND.LENJ.EQ.4) THEN
+      IF (LENI.EQ.16.AND.LENJ.EQ.16) THEN
 *     IF (.FALSE.) THEN
-*         .. Beta Update ..
-          C(1:4,1:4) = C(1:4,1:4)*BETA
+*       .. Beta Update ..
+        IF (BETA.NE.ONE)
+     +    C(1:16,1:16) = C(1:16,1:16)*BETA
 *
-*         Inner part needs manual expanding.
-*         Julia is usually better at this.
+*       Inner part needs manual expanding.
+*       Julia is usually better at this.
 *
-          CALL ADDDOTT4X4(LENL,A,4,B,4,C,LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(01,1),LDA,B(01,1),LDB,C(01,01),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(05,1),LDA,B(01,1),LDB,C(05,01),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(09,1),LDA,B(01,1),LDB,C(09,01),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(13,1),LDA,B(01,1),LDB,C(13,01),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(01,1),LDA,B(05,1),LDB,C(01,05),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(05,1),LDA,B(05,1),LDB,C(05,05),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(09,1),LDA,B(05,1),LDB,C(09,05),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(13,1),LDA,B(05,1),LDB,C(13,05),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(01,1),LDA,B(09,1),LDB,C(01,09),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(05,1),LDA,B(09,1),LDB,C(05,09),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(09,1),LDA,B(09,1),LDB,C(09,09),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(13,1),LDA,B(09,1),LDB,C(13,09),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(01,1),LDA,B(13,1),LDB,C(01,13),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(05,1),LDA,B(13,1),LDB,C(05,13),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(09,1),LDA,B(13,1),LDB,C(09,13),LDC)
+        CALL ADDDOTT4X4(LENL,ALPHA,A(13,1),LDA,B(13,1),LDB,C(13,13),LDC)
 *
       ELSE
 *
@@ -463,21 +456,12 @@
                   C(I,J) = C(I,J)*BETA
               END DO
           END IF
-          IF (PM) THEN
-              DO 320 L = 1,LENL
-                  TEMP = B(J,L)
-                  DO 330 I = 1,LENI
-                      C(I,J) = C(I,J) + TEMP*A(I,L)
-  330             CONTINUE
-  320         CONTINUE
-          ELSE
-              DO 321 L = 1,LENL
-                  TEMP = B(J,L)
-                  DO 331 I = 1,LENI
-                      C(I,J) = C(I,J) - TEMP*A(I,L)
-  331             CONTINUE
-  321         CONTINUE
-          END IF
+          DO 320 L = 1,LENL
+              TEMP = B(J,L)*ALPHA
+              DO 330 I = 1,LENI
+                  C(I,J) = C(I,J) + TEMP*A(I,L)
+  330         CONTINUE
+  320     CONTINUE
   300   CONTINUE
       END IF
 *
@@ -486,12 +470,12 @@
 *
 *     Auxilliary core MSKR2K('N','U').
 *
-      SUBROUTINE DMSKR2K(LENI,LENJ,LENL,A,B,BETA,C,LDC)
+      SUBROUTINE DMSKR2K(LENI,LENJ,LENL,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
 *     .. Arguments ..
-      INTEGER LENI,LENJ,LENL,LDC
-      DOUBLE PRECISION BETA
+      INTEGER LENI,LENJ,LENL,LDA,LDB,LDC
+      DOUBLE PRECISION BETA,ALPHA
       DOUBLE PRECISION C(LDC,*)
-      DOUBLE PRECISION A(LENI,*),B(LENJ,*)
+      DOUBLE PRECISION A(LDA,*),B(LDB,*)
 *     .. Parameters ..
       DOUBLE PRECISION ONE
       PARAMETER (ONE= 1.0D+0)
@@ -519,8 +503,8 @@
           DO 120 L = 1,LENL
               IF ((A(J,L).NE.ZERO)  .OR. 
      +            (B(J,L).NE.ZERO)) THEN
-                  TEMP1 = B(J,L)
-                  TEMP2 = A(J,L)
+                  TEMP1 = B(J,L)*ALPHA
+                  TEMP2 = A(J,L)*ALPHA
                   DO 110 I = 1,J - 1
                       C(I,J) = C(I,J) + A(I,L)*TEMP1 - B(I,L)*TEMP2
   110             CONTINUE
@@ -530,24 +514,5 @@
   130 CONTINUE
 *
       RETURN
-      END
-*
-*     Memory packing.
-*
-      SUBROUTINE DMPACK(M,N,ALPHA,A,LDA,T)
-*     .. Arguments ..
-      INTEGER M,N,LDA
-      DOUBLE PRECISION ALPHA
-      DOUBLE PRECISION A(LDA,*),T(M,*)
-      DOUBLE PRECISION ONE
-      PARAMETER (ONE= 1.0D+0)
-*
-*     Pack to tight memory.
-*
-      IF (ALPHA.EQ.ONE) THEN
-          T(1:M,1:N) = A(1:M,1:N)
-      ELSE
-          T(1:M,1:N) = ALPHA*A(1:M,1:N)
-      END IF
       END
 

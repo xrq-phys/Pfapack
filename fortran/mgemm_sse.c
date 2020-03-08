@@ -2,7 +2,6 @@
 #include <xmmintrin.h>  // SSE
 #include <pmmintrin.h>  // SSE2
 #include <emmintrin.h>  // SSE3
-#include <stdio.h>
 
 /* Create macros so that the matrices are stored in column-major order */
 
@@ -16,7 +15,8 @@ typedef union
   double d[2];
 } v2df_t;
 
-void adddot4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *c, int *ldc_ )
+void adddot4x4_( int *k_, double *alpha_, 
+        double *a, int *lda_,  double *b, int *ldb_, double *c, int *ldc_ )
 {
   /* So, this routine computes a 4x4 block of matrix A
            C( 0, 0 ), C( 0, 1 ), C( 0, 2 ), C( 0, 3 ).  
@@ -38,6 +38,7 @@ void adddot4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *c
       lda = *lda_,
       ldb = *ldb_,
       ldc = *ldc_;
+  double alpha = *alpha_;
 
   v2df_t
     c_00_c_10_vreg,    c_01_c_11_vreg,    c_02_c_12_vreg,    c_03_c_13_vreg,
@@ -67,7 +68,7 @@ void adddot4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *c
   for ( p=0; p<k; p++ ){
     a_0p_a_1p_vreg.v = _mm_load_pd( (double *) a );
     a_2p_a_3p_vreg.v = _mm_load_pd( (double *) ( a+2 ) );
-    a += 4;
+    a += lda;
 
     b_p0_vreg.v = _mm_loaddup_pd( (double *) b_p0_pntr++ );   /* load and duplicate */
     b_p1_vreg.v = _mm_loaddup_pd( (double *) b_p1_pntr++ );   /* load and duplicate */
@@ -87,26 +88,28 @@ void adddot4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *c
     c_23_c_33_vreg.v += a_2p_a_3p_vreg.v * b_p3_vreg.v;
   }
 
-  C( 0, 0 ) += c_00_c_10_vreg.d[0];  C( 0, 1 ) += c_01_c_11_vreg.d[0];  
-  C( 0, 2 ) += c_02_c_12_vreg.d[0];  C( 0, 3 ) += c_03_c_13_vreg.d[0]; 
+  C( 0, 0 ) += c_00_c_10_vreg.d[0]*alpha;  C( 0, 1 ) += c_01_c_11_vreg.d[0]*alpha;
+  C( 0, 2 ) += c_02_c_12_vreg.d[0]*alpha;  C( 0, 3 ) += c_03_c_13_vreg.d[0]*alpha;
 
-  C( 1, 0 ) += c_00_c_10_vreg.d[1];  C( 1, 1 ) += c_01_c_11_vreg.d[1];  
-  C( 1, 2 ) += c_02_c_12_vreg.d[1];  C( 1, 3 ) += c_03_c_13_vreg.d[1]; 
+  C( 1, 0 ) += c_00_c_10_vreg.d[1]*alpha;  C( 1, 1 ) += c_01_c_11_vreg.d[1]*alpha;
+  C( 1, 2 ) += c_02_c_12_vreg.d[1]*alpha;  C( 1, 3 ) += c_03_c_13_vreg.d[1]*alpha;
 
-  C( 2, 0 ) += c_20_c_30_vreg.d[0];  C( 2, 1 ) += c_21_c_31_vreg.d[0];  
-  C( 2, 2 ) += c_22_c_32_vreg.d[0];  C( 2, 3 ) += c_23_c_33_vreg.d[0]; 
+  C( 2, 0 ) += c_20_c_30_vreg.d[0]*alpha;  C( 2, 1 ) += c_21_c_31_vreg.d[0]*alpha;
+  C( 2, 2 ) += c_22_c_32_vreg.d[0]*alpha;  C( 2, 3 ) += c_23_c_33_vreg.d[0]*alpha;
 
-  C( 3, 0 ) += c_20_c_30_vreg.d[1];  C( 3, 1 ) += c_21_c_31_vreg.d[1];  
-  C( 3, 2 ) += c_22_c_32_vreg.d[1];  C( 3, 3 ) += c_23_c_33_vreg.d[1]; 
+  C( 3, 0 ) += c_20_c_30_vreg.d[1]*alpha;  C( 3, 1 ) += c_21_c_31_vreg.d[1]*alpha;
+  C( 3, 2 ) += c_22_c_32_vreg.d[1]*alpha;  C( 3, 3 ) += c_23_c_33_vreg.d[1]*alpha;
 }
 
-void adddott4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *c, int *ldc_ )
+void adddott4x4_( int *k_, double *alpha_, 
+        double *a, int *lda_,  double *b, int *ldb_, double *c, int *ldc_ )
 {
   int p,
       k = *k_,
       lda = *lda_,
       ldb = *ldb_,
       ldc = *ldc_;
+  double alpha = *alpha_;
 
   v2df_t
     c_00_c_10_vreg,    c_01_c_11_vreg,    c_02_c_12_vreg,    c_03_c_13_vreg,
@@ -127,13 +130,13 @@ void adddott4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *
   for ( p=0; p<k; p++ ){
     a_0p_a_1p_vreg.v = _mm_load_pd( (double *) a );
     a_2p_a_3p_vreg.v = _mm_load_pd( (double *) ( a+2 ) );
-    a += 4;
+    a += lda;
 
     b_p0_vreg.v = _mm_loaddup_pd( (double *) b );         /* load and duplicate */
     b_p1_vreg.v = _mm_loaddup_pd( (double *) ( b+1 ) );   /* load and duplicate */
     b_p2_vreg.v = _mm_loaddup_pd( (double *) ( b+2 ) );   /* load and duplicate */
     b_p3_vreg.v = _mm_loaddup_pd( (double *) ( b+3 ) );   /* load and duplicate */
-    b += 4;
+    b += ldb;
 
     /* First row and second rows */
     c_00_c_10_vreg.v += a_0p_a_1p_vreg.v * b_p0_vreg.v;
@@ -148,16 +151,16 @@ void adddott4x4_( int *k_, double *a, int *lda_,  double *b, int *ldb_, double *
     c_23_c_33_vreg.v += a_2p_a_3p_vreg.v * b_p3_vreg.v;
   }
 
-  C( 0, 0 ) += c_00_c_10_vreg.d[0];  C( 0, 1 ) += c_01_c_11_vreg.d[0];  
-  C( 0, 2 ) += c_02_c_12_vreg.d[0];  C( 0, 3 ) += c_03_c_13_vreg.d[0]; 
+  C( 0, 0 ) += c_00_c_10_vreg.d[0]*alpha;  C( 0, 1 ) += c_01_c_11_vreg.d[0]*alpha;
+  C( 0, 2 ) += c_02_c_12_vreg.d[0]*alpha;  C( 0, 3 ) += c_03_c_13_vreg.d[0]*alpha;
 
-  C( 1, 0 ) += c_00_c_10_vreg.d[1];  C( 1, 1 ) += c_01_c_11_vreg.d[1];  
-  C( 1, 2 ) += c_02_c_12_vreg.d[1];  C( 1, 3 ) += c_03_c_13_vreg.d[1]; 
+  C( 1, 0 ) += c_00_c_10_vreg.d[1]*alpha;  C( 1, 1 ) += c_01_c_11_vreg.d[1]*alpha;
+  C( 1, 2 ) += c_02_c_12_vreg.d[1]*alpha;  C( 1, 3 ) += c_03_c_13_vreg.d[1]*alpha;
 
-  C( 2, 0 ) += c_20_c_30_vreg.d[0];  C( 2, 1 ) += c_21_c_31_vreg.d[0];  
-  C( 2, 2 ) += c_22_c_32_vreg.d[0];  C( 2, 3 ) += c_23_c_33_vreg.d[0]; 
+  C( 2, 0 ) += c_20_c_30_vreg.d[0]*alpha;  C( 2, 1 ) += c_21_c_31_vreg.d[0]*alpha;
+  C( 2, 2 ) += c_22_c_32_vreg.d[0]*alpha;  C( 2, 3 ) += c_23_c_33_vreg.d[0]*alpha;
 
-  C( 3, 0 ) += c_20_c_30_vreg.d[1];  C( 3, 1 ) += c_21_c_31_vreg.d[1];  
-  C( 3, 2 ) += c_22_c_32_vreg.d[1];  C( 3, 3 ) += c_23_c_33_vreg.d[1]; 
+  C( 3, 0 ) += c_20_c_30_vreg.d[1]*alpha;  C( 3, 1 ) += c_21_c_31_vreg.d[1]*alpha;
+  C( 3, 2 ) += c_22_c_32_vreg.d[1]*alpha;  C( 3, 3 ) += c_23_c_33_vreg.d[1]*alpha;
 }
 
