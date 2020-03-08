@@ -165,10 +165,10 @@
 *
 *     Prepare scratchpad space.
 *
-      IF (LDC.GE.18) THEN
+      IF (LDC.GE.66) THEN
 *         SPMA =>C(3,1)
 *         SPMB =>C(3,2)
-          MBLK = 4
+          MBLK = 8
       ELSE
 *         Do not do blocking.
           MBLK = N
@@ -431,28 +431,195 @@
       DOUBLE PRECISION ONE
       PARAMETER (ONE= 1.0D+0)
 *     .. Local variables ..
-      DOUBLE PRECISION TEMP
+      DOUBLE PRECISION TEMP,TEMP2
       INTEGER I,J,L
 *
 *     Execution of microkernel.
 *
-      DO 300 J = 1,LENJ
-          IF (BETA.NE.ONE) THEN
-              DO 310 I = 1,LENI
-                  C(I,J) = C(I,J)*BETA
-  310         CONTINUE
+      IF (LENI.EQ.8.AND.LENJ.EQ.8) THEN
+*         .. Beta Update ..
+          C(1:8,1:8) = C(1:8,1:8)*BETA
+*
+*         Inner part needs manual expanding.
+*         Julia is usually better at this.
+*
+          IF (PM) THEN
+              DO 302 L = 1,LENL
+*                 .. Column 1 ..
+                  C(1,1) = C(1,1) + A(1,L) * B(1,L);
+                  C(2,1) = C(2,1) + A(2,L) * B(1,L);
+                  C(3,1) = C(3,1) + A(3,L) * B(1,L);
+                  C(4,1) = C(4,1) + A(4,L) * B(1,L);
+                  C(5,1) = C(5,1) + A(5,L) * B(1,L);
+                  C(6,1) = C(6,1) + A(6,L) * B(1,L);
+                  C(7,1) = C(7,1) + A(7,L) * B(1,L);
+                  C(8,1) = C(8,1) + A(8,L) * B(1,L);
+*                 .. Column 2 ..
+                  C(1,2) = C(1,2) + A(1,L) * B(2,L);
+                  C(2,2) = C(2,2) + A(2,L) * B(2,L);
+                  C(3,2) = C(3,2) + A(3,L) * B(2,L);
+                  C(4,2) = C(4,2) + A(4,L) * B(2,L);
+                  C(5,2) = C(5,2) + A(5,L) * B(2,L);
+                  C(6,2) = C(6,2) + A(6,L) * B(2,L);
+                  C(7,2) = C(7,2) + A(7,L) * B(2,L);
+                  C(8,2) = C(8,2) + A(8,L) * B(2,L);
+*                 .. Column 3 ..
+                  C(1,3) = C(1,3) + A(1,L) * B(3,L);
+                  C(2,3) = C(2,3) + A(2,L) * B(3,L);
+                  C(3,3) = C(3,3) + A(3,L) * B(3,L);
+                  C(4,3) = C(4,3) + A(4,L) * B(3,L);
+                  C(5,3) = C(5,3) + A(5,L) * B(3,L);
+                  C(6,3) = C(6,3) + A(6,L) * B(3,L);
+                  C(7,3) = C(7,3) + A(7,L) * B(3,L);
+                  C(8,3) = C(8,3) + A(8,L) * B(3,L);
+*                 .. Column 4 ..
+                  C(1,4) = C(1,4) + A(1,L) * B(4,L);
+                  C(2,4) = C(2,4) + A(2,L) * B(4,L);
+                  C(3,4) = C(3,4) + A(3,L) * B(4,L);
+                  C(4,4) = C(4,4) + A(4,L) * B(4,L);
+                  C(5,4) = C(5,4) + A(5,L) * B(4,L);
+                  C(6,4) = C(6,4) + A(6,L) * B(4,L);
+                  C(7,4) = C(7,4) + A(7,L) * B(4,L);
+                  C(8,4) = C(8,4) + A(8,L) * B(4,L);
+*                 .. Column 5 ..
+                  C(1,5) = C(1,5) + A(1,L) * B(5,L);
+                  C(2,5) = C(2,5) + A(2,L) * B(5,L);
+                  C(3,5) = C(3,5) + A(3,L) * B(5,L);
+                  C(4,5) = C(4,5) + A(4,L) * B(5,L);
+                  C(5,5) = C(5,5) + A(5,L) * B(5,L);
+                  C(6,5) = C(6,5) + A(6,L) * B(5,L);
+                  C(7,5) = C(7,5) + A(7,L) * B(5,L);
+                  C(8,5) = C(8,5) + A(8,L) * B(5,L);
+*                 .. Column 6 ..
+                  C(1,6) = C(1,6) + A(1,L) * B(6,L);
+                  C(2,6) = C(2,6) + A(2,L) * B(6,L);
+                  C(3,6) = C(3,6) + A(3,L) * B(6,L);
+                  C(4,6) = C(4,6) + A(4,L) * B(6,L);
+                  C(5,6) = C(5,6) + A(5,L) * B(6,L);
+                  C(6,6) = C(6,6) + A(6,L) * B(6,L);
+                  C(7,6) = C(7,6) + A(7,L) * B(6,L);
+                  C(8,6) = C(8,6) + A(8,L) * B(6,L);
+*                 .. Column 7 ..
+                  C(1,7) = C(1,7) + A(1,L) * B(7,L);
+                  C(2,7) = C(2,7) + A(2,L) * B(7,L);
+                  C(3,7) = C(3,7) + A(3,L) * B(7,L);
+                  C(4,7) = C(4,7) + A(4,L) * B(7,L);
+                  C(5,7) = C(5,7) + A(5,L) * B(7,L);
+                  C(6,7) = C(6,7) + A(6,L) * B(7,L);
+                  C(7,7) = C(7,7) + A(7,L) * B(7,L);
+                  C(8,7) = C(8,7) + A(8,L) * B(7,L);
+*                 .. Column 8 ..
+                  C(1,8) = C(1,8) + A(1,L) * B(8,L);
+                  C(2,8) = C(2,8) + A(2,L) * B(8,L);
+                  C(3,8) = C(3,8) + A(3,L) * B(8,L);
+                  C(4,8) = C(4,8) + A(4,L) * B(8,L);
+                  C(5,8) = C(5,8) + A(5,L) * B(8,L);
+                  C(6,8) = C(6,8) + A(6,L) * B(8,L);
+                  C(7,8) = C(7,8) + A(7,L) * B(8,L);
+                  C(8,8) = C(8,8) + A(8,L) * B(8,L);
+  302         CONTINUE
+          ELSE
+              DO 312 L = 1,LENL
+*                 .. Column 1 ..
+                  C(1,1) = C(1,1) - A(1,L) * B(1,L);
+                  C(2,1) = C(2,1) - A(2,L) * B(1,L);
+                  C(3,1) = C(3,1) - A(3,L) * B(1,L);
+                  C(4,1) = C(4,1) - A(4,L) * B(1,L);
+                  C(5,1) = C(5,1) - A(5,L) * B(1,L);
+                  C(6,1) = C(6,1) - A(6,L) * B(1,L);
+                  C(7,1) = C(7,1) - A(7,L) * B(1,L);
+                  C(8,1) = C(8,1) - A(8,L) * B(1,L);
+*                 .. Column 2 ..                   
+                  C(1,2) = C(1,2) - A(1,L) * B(2,L);
+                  C(2,2) = C(2,2) - A(2,L) * B(2,L);
+                  C(3,2) = C(3,2) - A(3,L) * B(2,L);
+                  C(4,2) = C(4,2) - A(4,L) * B(2,L);
+                  C(5,2) = C(5,2) - A(5,L) * B(2,L);
+                  C(6,2) = C(6,2) - A(6,L) * B(2,L);
+                  C(7,2) = C(7,2) - A(7,L) * B(2,L);
+                  C(8,2) = C(8,2) - A(8,L) * B(2,L);
+*                 .. Column 3 ..                   
+                  C(1,3) = C(1,3) - A(1,L) * B(3,L);
+                  C(2,3) = C(2,3) - A(2,L) * B(3,L);
+                  C(3,3) = C(3,3) - A(3,L) * B(3,L);
+                  C(4,3) = C(4,3) - A(4,L) * B(3,L);
+                  C(5,3) = C(5,3) - A(5,L) * B(3,L);
+                  C(6,3) = C(6,3) - A(6,L) * B(3,L);
+                  C(7,3) = C(7,3) - A(7,L) * B(3,L);
+                  C(8,3) = C(8,3) - A(8,L) * B(3,L);
+*                 .. Column 4 ..                   
+                  C(1,4) = C(1,4) - A(1,L) * B(4,L);
+                  C(2,4) = C(2,4) - A(2,L) * B(4,L);
+                  C(3,4) = C(3,4) - A(3,L) * B(4,L);
+                  C(4,4) = C(4,4) - A(4,L) * B(4,L);
+                  C(5,4) = C(5,4) - A(5,L) * B(4,L);
+                  C(6,4) = C(6,4) - A(6,L) * B(4,L);
+                  C(7,4) = C(7,4) - A(7,L) * B(4,L);
+                  C(8,4) = C(8,4) - A(8,L) * B(4,L);
+*                 .. Column 5 ..                   
+                  C(1,5) = C(1,5) - A(1,L) * B(5,L);
+                  C(2,5) = C(2,5) - A(2,L) * B(5,L);
+                  C(3,5) = C(3,5) - A(3,L) * B(5,L);
+                  C(4,5) = C(4,5) - A(4,L) * B(5,L);
+                  C(5,5) = C(5,5) - A(5,L) * B(5,L);
+                  C(6,5) = C(6,5) - A(6,L) * B(5,L);
+                  C(7,5) = C(7,5) - A(7,L) * B(5,L);
+                  C(8,5) = C(8,5) - A(8,L) * B(5,L);
+*                 .. Column 6 ..                   
+                  C(1,6) = C(1,6) - A(1,L) * B(6,L);
+                  C(2,6) = C(2,6) - A(2,L) * B(6,L);
+                  C(3,6) = C(3,6) - A(3,L) * B(6,L);
+                  C(4,6) = C(4,6) - A(4,L) * B(6,L);
+                  C(5,6) = C(5,6) - A(5,L) * B(6,L);
+                  C(6,6) = C(6,6) - A(6,L) * B(6,L);
+                  C(7,6) = C(7,6) - A(7,L) * B(6,L);
+                  C(8,6) = C(8,6) - A(8,L) * B(6,L);
+*                 .. Column 7 ..                   
+                  C(1,7) = C(1,7) - A(1,L) * B(7,L);
+                  C(2,7) = C(2,7) - A(2,L) * B(7,L);
+                  C(3,7) = C(3,7) - A(3,L) * B(7,L);
+                  C(4,7) = C(4,7) - A(4,L) * B(7,L);
+                  C(5,7) = C(5,7) - A(5,L) * B(7,L);
+                  C(6,7) = C(6,7) - A(6,L) * B(7,L);
+                  C(7,7) = C(7,7) - A(7,L) * B(7,L);
+                  C(8,7) = C(8,7) - A(8,L) * B(7,L);
+*                 .. Column 8 ..                   
+                  C(1,8) = C(1,8) - A(1,L) * B(8,L);
+                  C(2,8) = C(2,8) - A(2,L) * B(8,L);
+                  C(3,8) = C(3,8) - A(3,L) * B(8,L);
+                  C(4,8) = C(4,8) - A(4,L) * B(8,L);
+                  C(5,8) = C(5,8) - A(5,L) * B(8,L);
+                  C(6,8) = C(6,8) - A(6,L) * B(8,L);
+                  C(7,8) = C(7,8) - A(7,L) * B(8,L);
+                  C(8,8) = C(8,8) - A(8,L) * B(8,L);
+  312         CONTINUE
           END IF
-          DO 320 L = 1,LENL
-              TEMP = B(J,L)
-              DO 330 I = 1,LENI
-                  IF (PM) THEN
+*
+      ELSE
+*
+        DO 300 J = 1,LENJ
+          IF (BETA.NE.ONE) THEN
+              DO I = 1,LENI
+                  C(I,J) = C(I,J)*BETA
+              END DO
+          END IF
+          IF (PM) THEN
+              DO 320 L = 1,LENL
+                  TEMP = B(J,L)
+                  DO 330 I = 1,LENI
                       C(I,J) = C(I,J) + TEMP*A(I,L)
-                  ELSE
+  330             CONTINUE
+  320         CONTINUE
+          ELSE
+              DO 321 L = 1,LENL
+                  TEMP = B(J,L)
+                  DO 331 I = 1,LENI
                       C(I,J) = C(I,J) - TEMP*A(I,L)
-                  END IF
-  330         CONTINUE
-  320     CONTINUE
-  300 CONTINUE
+  331             CONTINUE
+  321         CONTINUE
+          END IF
+  300   CONTINUE
+      END IF
 *
       RETURN
       END
