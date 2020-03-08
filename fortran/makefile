@@ -12,7 +12,7 @@ OBJECTS= slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 	 zsktf2.o zsktrd.o zsktrf.o mul10.o\
 	 precision.o f77_interface.o f95_interface.o message.o \
 	 skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
-	 sktrf.o sktf2.o skbtrd.o mgemm_sse.o
+	 sktrf.o sktf2.o skbtrd.o mgemm_avx.o
 
 CC = gcc
 CFLAGS = -O3 -march=native
