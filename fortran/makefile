@@ -14,6 +14,8 @@ OBJECTS= slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 	 skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
 	 sktrf.o sktf2.o skbtrd.o mgemm_sse.o
 
+CC = gcc
+CFLAGS = -O3 -march=native
 FORT = gfortran
 FFLAGS = -O3 -march=native -fimplicit-none
 

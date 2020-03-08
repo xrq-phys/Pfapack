@@ -294,7 +294,7 @@
 *
 *               Packs memory for fast execution.
 *
-                IF (NBLK.NE.1) 
+                IF (NBLK.NE.1)
      +            CALL DMPACK('T',LENL,LENJ,ALPHA,
      +                        B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
      +                        C(3,2))
@@ -319,7 +319,7 @@
      +                           C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                   ELSE
 *
-*                   Use GEMM core here. 
+*                   Use GEMM core here.
 *
                     CALL DMGEMM(LENI,LENJ,LENL,
      +                          C(3,1),C(3,2),TBETA,
@@ -345,7 +345,7 @@
                   ELSE
                     LENL = MBLK
                   END IF
-                  IF (NBLK.NE.1) 
+                  IF (NBLK.NE.1)
      +              CALL DMPACK('T',LENL,LENJ,-ALPHA,
      +                          A(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
      +                          C(3,2))
@@ -531,7 +531,7 @@
               C(J,J) = ZERO
           END IF
           DO 120 L = 1,LENL
-              IF ((A(J,L).NE.ZERO)  .OR. 
+              IF ((A(J,L).NE.ZERO)  .OR.
      +            (B(L,J).NE.ZERO)) THEN
                   TEMP1 = B(L,J)
                   TEMP2 = A(J,L)
@@ -573,14 +573,10 @@
 *         A transpose packing which could cause memory stall.
 *
           IF (ALPHA.EQ.ONE) THEN
-!GCC$ UNROLL 4
-!DIR$ UNROLL =4
             DO 980 I = 1,M
               T(I,1:N) = A(1:N,I)
   980       CONTINUE
           ELSE
-!GCC$ UNROLL 4
-!DIR$ UNROLL =4
             DO 981 I = 1,M
               T(I,1:N) = ALPHA*A(1:N,I)
   981       CONTINUE
