@@ -145,6 +145,7 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL XERBLA
+      EXTERNAL DGEMM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC MAX
@@ -161,7 +162,7 @@
       DOUBLE PRECISION ZERO
       PARAMETER (ZERO= 0.0D+0)
       INTEGER MBLK
-      PARAMETER (MBLK= 16)
+      PARAMETER (MBLK= 64)
 *     ..
 *
 *     Test the input parameters.
@@ -293,7 +294,7 @@
 *
 *                   Vanilla kernel along the diagonal.
 *
-                    CALL DMSKR2K(LENI,LENJ,LENL,ALPHA,
+                    CALL DMSKR2K(LENI,LENL,ALPHA,
      +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
      +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
      +                           TBETA,
@@ -304,17 +305,17 @@
 *                   Implementation is out of the box.
 *
                     IF (MI.LT.MJ) THEN
-                      CALL DMGEMM(LENI,LENJ,LENL,ALPHA,
-     +                            A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                            B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
-     +                            TBETA,
-     +                            C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
+                      CALL DGEMM('N','T',LENI,LENJ,LENL,ALPHA,
+     +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
+     +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
+     +                           TBETA,
+     +                           C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                     ELSE
-                      CALL DMGEMM(LENJ,LENI,LENL,-ALPHA,
-     +                            B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
-     +                            A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
-     +                            TBETA,
-     +                            C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
+                      CALL DGEMM('N','T',LENJ,LENI,LENL,-ALPHA,
+     +                           B(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
+     +                           A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
+     +                           TBETA,
+     +                           C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
                     END IF
                   END IF
   111           CONTINUE
@@ -470,9 +471,9 @@
 *
 *     Auxilliary core MSKR2K('N','U').
 *
-      SUBROUTINE DMSKR2K(LENI,LENJ,LENL,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
+      SUBROUTINE DMSKR2K(N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
 *     .. Arguments ..
-      INTEGER LENI,LENJ,LENL,LDA,LDB,LDC
+      INTEGER N,K,LDA,LDB,LDC
       DOUBLE PRECISION BETA,ALPHA
       DOUBLE PRECISION C(LDC,*)
       DOUBLE PRECISION A(LDA,*),B(LDB,*)
@@ -483,35 +484,86 @@
       PARAMETER (ZERO= 0.0D+0)
 *     .. Local variables ..
       DOUBLE PRECISION TEMP1,TEMP2
-      INTEGER I,J,L
+      INTEGER MI,MJ
+      INTEGER I,J,L,I_,J_
+      INTEGER MBLK,NBLK,NBLK_,LENI,LENJ
+      PARAMETER (MBLK= 16)
 *
-*     Execution of microkernel.
+*     Determine microblock size.
 *
-      DO 130 J = 1,LENJ
-          IF (BETA.EQ.ZERO) THEN
-              DO 90 I = 1,J
-                  C(I,J) = ZERO
-   90         CONTINUE
-          ELSE IF (BETA.NE.ONE) THEN
-              DO 100 I = 1,J - 1
-                  C(I,J) = BETA*C(I,J)
-  100         CONTINUE
-              C(J,J) = ZERO
+      NBLK = N/MBLK
+      NBLK_ = MOD(N,MBLK)
+      IF (NBLK_.GT.0) THEN
+          NBLK = NBLK+1
+      END IF
+*
+*     Dispatch to microkernels.
+*
+      DO MJ = 1,NBLK
+        IF (MJ.EQ.NBLK.AND.NBLK_.GT.0) THEN
+          LENJ = NBLK_
+        ELSE
+          LENJ = MBLK
+        END IF
+*
+        DO MI = 1,NBLK
+          IF (MI.EQ.NBLK.AND.NBLK_.GT.0) THEN
+            LENI = NBLK_
           ELSE
-              C(J,J) = ZERO
+            LENI = MBLK
           END IF
-          DO 120 L = 1,LENL
-              IF ((A(J,L).NE.ZERO)  .OR. 
-     +            (B(J,L).NE.ZERO)) THEN
-                  TEMP1 = B(J,L)*ALPHA
-                  TEMP2 = A(J,L)*ALPHA
-                  DO 110 I = 1,J - 1
-                      C(I,J) = C(I,J) + A(I,L)*TEMP1 - B(I,L)*TEMP2
-  110             CONTINUE
-                  C(J,J) = ZERO
+*
+          IF (MI.EQ.MJ) THEN
+*
+*           Vanilla microcore.
+*
+            DO 130 J = 1,LENJ
+              J_ = MJ*MBLK-MBLK+J
+              IF (BETA.EQ.ZERO) THEN
+                DO 90 I = 1,J
+                  C(MI*MBLK-MBLK+I,J_) = ZERO
+   90           CONTINUE
+              ELSE IF (BETA.NE.ONE) THEN
+                DO 100 I = 1,J - 1
+                  C(MI*MBLK-MBLK+I,J_) = BETA*C(MI*MBLK-MBLK+I,J_)
+  100           CONTINUE
+                C(J_,J_) = ZERO
+              ELSE
+                C(J_,J_) = ZERO
               END IF
-  120     CONTINUE
-  130 CONTINUE
+              DO 120 L = 1,K
+                IF ((A(J_,L).NE.ZERO)  .OR. 
+     +              (B(J_,L).NE.ZERO)) THEN
+                  TEMP1 = B(J_,L)*ALPHA
+                  TEMP2 = A(J_,L)*ALPHA
+                  DO 110 I = 1,J - 1
+                    I_ = MI*MBLK-MBLK+I
+                    C(I_,J_) = C(I_,J_) + A(I_,L)*TEMP1 - B(I_,L)*TEMP2
+  110             CONTINUE
+                  C(J_,J_) = ZERO
+                END IF
+  120         CONTINUE
+  130       CONTINUE
+          ELSE
+*
+*           Handcrafted GEMM microcore.
+*
+            IF (MI.LT.MJ) THEN
+              CALL DMGEMM(LENI,LENJ,K,ALPHA,
+     +                    A(MI*MBLK-MBLK+1,1),LDA,
+     +                    B(MJ*MBLK-MBLK+1,1),LDB,
+     +                    BETA,
+     +                    C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
+            ELSE
+              CALL DMGEMM(LENJ,LENI,K,-ALPHA,
+     +                    B(MJ*MBLK-MBLK+1,1),LDB,
+     +                    A(MI*MBLK-MBLK+1,1),LDA,
+     +                    BETA,
+     +                    C(MJ*MBLK-MBLK+1,MI*MBLK-MBLK+1),LDC)
+            END IF
+          END IF
+        END DO
+      END DO
 *
       RETURN
       END
