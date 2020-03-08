@@ -165,10 +165,10 @@
 *
 *     Prepare scratchpad space.
 *
-      IF (LDC.GE.66) THEN
+      IF (LDC.GE.18) THEN
 *         SPMA =>C(3,1)
 *         SPMB =>C(3,2)
-          MBLK = 8
+          MBLK = 4
       ELSE
 *         Do not do blocking.
           MBLK = N
@@ -306,7 +306,7 @@
                     LENI = MBLK
                   END IF
                   IF (NBLK.NE.1)
-     +              CALL DMPACK('N',LENI,LENL,ALPHA,
+     +              CALL DMPACK('N',LENI,LENL,ONE,
      +                          A(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
      +                          C(3,1))
 *
@@ -321,7 +321,7 @@
 *
 *                   Use GEMM core here. 
 *
-                    CALL DMGEMM(LENI,LENJ,LENL,.TRUE.,
+                    CALL DMGEMM(LENI,LENJ,LENL,
      +                          C(3,1),C(3,2),TBETA,
      +                          C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
                   END IF
@@ -346,7 +346,7 @@
                     LENL = MBLK
                   END IF
                   IF (NBLK.NE.1) 
-     +              CALL DMPACK('T',LENL,LENJ,ALPHA,
+     +              CALL DMPACK('T',LENL,LENJ,-ALPHA,
      +                          A(MJ*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDA,
      +                          C(3,2))
 *
@@ -357,11 +357,11 @@
                       LENI = MBLK
                     END IF
                     IF (NBLK.NE.1)
-     +                CALL DMPACK('N',LENI,LENL,ALPHA,
+     +                CALL DMPACK('N',LENI,LENL,ONE,
      +                            B(MI*MBLK-MBLK+1,ML*MBLK-MBLK+1),LDB,
      +                            C(3,1))
 *
-                      CALL DMGEMM(LENI,LENJ,LENL,.FALSE.,
+                      CALL DMGEMM(LENI,LENJ,LENL,
      +                            C(3,1),C(3,2),TBETA,
      +                            C(MI*MBLK-MBLK+1,MJ*MBLK-MBLK+1),LDC)
   112             CONTINUE
@@ -453,10 +453,9 @@
 *
 *     Auxilliary core MGEMM
 *
-      SUBROUTINE DMGEMM(LENI,LENJ,LENL,PM,A,B,BETA,C,LDC)
+      SUBROUTINE DMGEMM(LENI,LENJ,LENL,A,B,BETA,C,LDC)
 *     .. Arguments ..
       INTEGER LENI,LENJ,LENL,LDC
-      LOGICAL PM
       DOUBLE PRECISION BETA
       DOUBLE PRECISION C(LDC,*)
       DOUBLE PRECISION A(LENI,*),B(LENJ,*)
@@ -465,168 +464,19 @@
       PARAMETER (ONE= 1.0D+0)
 *     .. Local variables ..
       DOUBLE PRECISION TEMP,TEMP2
+      EXTERNAL ADDDOT4x4
       INTEGER I,J,L
 *
 *     Execution of microkernel.
 *
-      IF (LENI.EQ.8.AND.LENJ.EQ.8) THEN
+      IF (LENI.EQ.4.AND.LENJ.EQ.4) THEN
 *         .. Beta Update ..
-          C(1:8,1:8) = C(1:8,1:8)*BETA
+          C(1:4,1:4) = C(1:4,1:4)*BETA
 *
 *         Inner part needs manual expanding.
 *         Julia is usually better at this.
 *
-          IF (PM) THEN
-              DO 302 L = 1,LENL
-*                 .. Column 1 ..
-                  C(1,1) = C(1,1) + A(1,L) * B(L,1);
-                  C(2,1) = C(2,1) + A(2,L) * B(L,1);
-                  C(3,1) = C(3,1) + A(3,L) * B(L,1);
-                  C(4,1) = C(4,1) + A(4,L) * B(L,1);
-                  C(5,1) = C(5,1) + A(5,L) * B(L,1);
-                  C(6,1) = C(6,1) + A(6,L) * B(L,1);
-                  C(7,1) = C(7,1) + A(7,L) * B(L,1);
-                  C(8,1) = C(8,1) + A(8,L) * B(L,1);
-*                 .. Column 2 ..
-                  C(1,2) = C(1,2) + A(1,L) * B(L,2);
-                  C(2,2) = C(2,2) + A(2,L) * B(L,2);
-                  C(3,2) = C(3,2) + A(3,L) * B(L,2);
-                  C(4,2) = C(4,2) + A(4,L) * B(L,2);
-                  C(5,2) = C(5,2) + A(5,L) * B(L,2);
-                  C(6,2) = C(6,2) + A(6,L) * B(L,2);
-                  C(7,2) = C(7,2) + A(7,L) * B(L,2);
-                  C(8,2) = C(8,2) + A(8,L) * B(L,2);
-*                 .. Column 3 ..
-                  C(1,3) = C(1,3) + A(1,L) * B(L,3);
-                  C(2,3) = C(2,3) + A(2,L) * B(L,3);
-                  C(3,3) = C(3,3) + A(3,L) * B(L,3);
-                  C(4,3) = C(4,3) + A(4,L) * B(L,3);
-                  C(5,3) = C(5,3) + A(5,L) * B(L,3);
-                  C(6,3) = C(6,3) + A(6,L) * B(L,3);
-                  C(7,3) = C(7,3) + A(7,L) * B(L,3);
-                  C(8,3) = C(8,3) + A(8,L) * B(L,3);
-*                 .. Column 4 ..
-                  C(1,4) = C(1,4) + A(1,L) * B(L,4);
-                  C(2,4) = C(2,4) + A(2,L) * B(L,4);
-                  C(3,4) = C(3,4) + A(3,L) * B(L,4);
-                  C(4,4) = C(4,4) + A(4,L) * B(L,4);
-                  C(5,4) = C(5,4) + A(5,L) * B(L,4);
-                  C(6,4) = C(6,4) + A(6,L) * B(L,4);
-                  C(7,4) = C(7,4) + A(7,L) * B(L,4);
-                  C(8,4) = C(8,4) + A(8,L) * B(L,4);
-*                 .. Column 5 ..
-                  C(1,5) = C(1,5) + A(1,L) * B(L,5);
-                  C(2,5) = C(2,5) + A(2,L) * B(L,5);
-                  C(3,5) = C(3,5) + A(3,L) * B(L,5);
-                  C(4,5) = C(4,5) + A(4,L) * B(L,5);
-                  C(5,5) = C(5,5) + A(5,L) * B(L,5);
-                  C(6,5) = C(6,5) + A(6,L) * B(L,5);
-                  C(7,5) = C(7,5) + A(7,L) * B(L,5);
-                  C(8,5) = C(8,5) + A(8,L) * B(L,5);
-*                 .. Column 6 ..
-                  C(1,6) = C(1,6) + A(1,L) * B(L,6);
-                  C(2,6) = C(2,6) + A(2,L) * B(L,6);
-                  C(3,6) = C(3,6) + A(3,L) * B(L,6);
-                  C(4,6) = C(4,6) + A(4,L) * B(L,6);
-                  C(5,6) = C(5,6) + A(5,L) * B(L,6);
-                  C(6,6) = C(6,6) + A(6,L) * B(L,6);
-                  C(7,6) = C(7,6) + A(7,L) * B(L,6);
-                  C(8,6) = C(8,6) + A(8,L) * B(L,6);
-*                 .. Column 7 ..
-                  C(1,7) = C(1,7) + A(1,L) * B(L,7);
-                  C(2,7) = C(2,7) + A(2,L) * B(L,7);
-                  C(3,7) = C(3,7) + A(3,L) * B(L,7);
-                  C(4,7) = C(4,7) + A(4,L) * B(L,7);
-                  C(5,7) = C(5,7) + A(5,L) * B(L,7);
-                  C(6,7) = C(6,7) + A(6,L) * B(L,7);
-                  C(7,7) = C(7,7) + A(7,L) * B(L,7);
-                  C(8,7) = C(8,7) + A(8,L) * B(L,7);
-*                 .. Column 8 ..
-                  C(1,8) = C(1,8) + A(1,L) * B(L,8);
-                  C(2,8) = C(2,8) + A(2,L) * B(L,8);
-                  C(3,8) = C(3,8) + A(3,L) * B(L,8);
-                  C(4,8) = C(4,8) + A(4,L) * B(L,8);
-                  C(5,8) = C(5,8) + A(5,L) * B(L,8);
-                  C(6,8) = C(6,8) + A(6,L) * B(L,8);
-                  C(7,8) = C(7,8) + A(7,L) * B(L,8);
-                  C(8,8) = C(8,8) + A(8,L) * B(L,8);
-  302         CONTINUE
-          ELSE
-              DO 312 L = 1,LENL
-*                 .. Column 1 ..
-                  C(1,1) = C(1,1) - A(1,L) * B(L,1);
-                  C(2,1) = C(2,1) - A(2,L) * B(L,1);
-                  C(3,1) = C(3,1) - A(3,L) * B(L,1);
-                  C(4,1) = C(4,1) - A(4,L) * B(L,1);
-                  C(5,1) = C(5,1) - A(5,L) * B(L,1);
-                  C(6,1) = C(6,1) - A(6,L) * B(L,1);
-                  C(7,1) = C(7,1) - A(7,L) * B(L,1);
-                  C(8,1) = C(8,1) - A(8,L) * B(L,1);
-*                 .. Column 2 ..                   
-                  C(1,2) = C(1,2) - A(1,L) * B(L,2);
-                  C(2,2) = C(2,2) - A(2,L) * B(L,2);
-                  C(3,2) = C(3,2) - A(3,L) * B(L,2);
-                  C(4,2) = C(4,2) - A(4,L) * B(L,2);
-                  C(5,2) = C(5,2) - A(5,L) * B(L,2);
-                  C(6,2) = C(6,2) - A(6,L) * B(L,2);
-                  C(7,2) = C(7,2) - A(7,L) * B(L,2);
-                  C(8,2) = C(8,2) - A(8,L) * B(L,2);
-*                 .. Column 3 ..                   
-                  C(1,3) = C(1,3) - A(1,L) * B(L,3);
-                  C(2,3) = C(2,3) - A(2,L) * B(L,3);
-                  C(3,3) = C(3,3) - A(3,L) * B(L,3);
-                  C(4,3) = C(4,3) - A(4,L) * B(L,3);
-                  C(5,3) = C(5,3) - A(5,L) * B(L,3);
-                  C(6,3) = C(6,3) - A(6,L) * B(L,3);
-                  C(7,3) = C(7,3) - A(7,L) * B(L,3);
-                  C(8,3) = C(8,3) - A(8,L) * B(L,3);
-*                 .. Column 4 ..                   
-                  C(1,4) = C(1,4) - A(1,L) * B(L,4);
-                  C(2,4) = C(2,4) - A(2,L) * B(L,4);
-                  C(3,4) = C(3,4) - A(3,L) * B(L,4);
-                  C(4,4) = C(4,4) - A(4,L) * B(L,4);
-                  C(5,4) = C(5,4) - A(5,L) * B(L,4);
-                  C(6,4) = C(6,4) - A(6,L) * B(L,4);
-                  C(7,4) = C(7,4) - A(7,L) * B(L,4);
-                  C(8,4) = C(8,4) - A(8,L) * B(L,4);
-*                 .. Column 5 ..                   
-                  C(1,5) = C(1,5) - A(1,L) * B(L,5);
-                  C(2,5) = C(2,5) - A(2,L) * B(L,5);
-                  C(3,5) = C(3,5) - A(3,L) * B(L,5);
-                  C(4,5) = C(4,5) - A(4,L) * B(L,5);
-                  C(5,5) = C(5,5) - A(5,L) * B(L,5);
-                  C(6,5) = C(6,5) - A(6,L) * B(L,5);
-                  C(7,5) = C(7,5) - A(7,L) * B(L,5);
-                  C(8,5) = C(8,5) - A(8,L) * B(L,5);
-*                 .. Column 6 ..                   
-                  C(1,6) = C(1,6) - A(1,L) * B(L,6);
-                  C(2,6) = C(2,6) - A(2,L) * B(L,6);
-                  C(3,6) = C(3,6) - A(3,L) * B(L,6);
-                  C(4,6) = C(4,6) - A(4,L) * B(L,6);
-                  C(5,6) = C(5,6) - A(5,L) * B(L,6);
-                  C(6,6) = C(6,6) - A(6,L) * B(L,6);
-                  C(7,6) = C(7,6) - A(7,L) * B(L,6);
-                  C(8,6) = C(8,6) - A(8,L) * B(L,6);
-*                 .. Column 7 ..                   
-                  C(1,7) = C(1,7) - A(1,L) * B(L,7);
-                  C(2,7) = C(2,7) - A(2,L) * B(L,7);
-                  C(3,7) = C(3,7) - A(3,L) * B(L,7);
-                  C(4,7) = C(4,7) - A(4,L) * B(L,7);
-                  C(5,7) = C(5,7) - A(5,L) * B(L,7);
-                  C(6,7) = C(6,7) - A(6,L) * B(L,7);
-                  C(7,7) = C(7,7) - A(7,L) * B(L,7);
-                  C(8,7) = C(8,7) - A(8,L) * B(L,7);
-*                 .. Column 8 ..                   
-                  C(1,8) = C(1,8) - A(1,L) * B(L,8);
-                  C(2,8) = C(2,8) - A(2,L) * B(L,8);
-                  C(3,8) = C(3,8) - A(3,L) * B(L,8);
-                  C(4,8) = C(4,8) - A(4,L) * B(L,8);
-                  C(5,8) = C(5,8) - A(5,L) * B(L,8);
-                  C(6,8) = C(6,8) - A(6,L) * B(L,8);
-                  C(7,8) = C(7,8) - A(7,L) * B(L,8);
-                  C(8,8) = C(8,8) - A(8,L) * B(L,8);
-  312         CONTINUE
-          END IF
+          CALL ADDDOT4x4(LENL,A,4,B,4,C,LDC)
 *
       ELSE
 *
@@ -636,21 +486,12 @@
                   C(I,J) = C(I,J)*BETA
               END DO
           END IF
-          IF (PM) THEN
-              DO 320 L = 1,LENL
-                  TEMP = B(L,J)
-                  DO 330 I = 1,LENI
-                      C(I,J) = C(I,J) + TEMP*A(I,L)
-  330             CONTINUE
-  320         CONTINUE
-          ELSE
-              DO 321 L = 1,LENL
-                  TEMP = B(L,J)
-                  DO 331 I = 1,LENI
-                      C(I,J) = C(I,J) - TEMP*A(I,L)
-  331             CONTINUE
-  321         CONTINUE
-          END IF
+          DO 320 L = 1,LENL
+              TEMP = B(L,J)
+              DO 330 I = 1,LENI
+                  C(I,J) = C(I,J) + TEMP*A(I,L)
+  330         CONTINUE
+  320     CONTINUE
   300   CONTINUE
       END IF
 *
@@ -732,14 +573,14 @@
 *         A transpose packing which could cause memory stall.
 *
           IF (ALPHA.EQ.ONE) THEN
-!GCC$ UNROLL 8
-!DIR$ UNROLL =8
+!GCC$ UNROLL 4
+!DIR$ UNROLL =4
             DO 980 I = 1,M
               T(I,1:N) = A(1:N,I)
   980       CONTINUE
           ELSE
-!GCC$ UNROLL 8
-!DIR$ UNROLL =8
+!GCC$ UNROLL 4
+!DIR$ UNROLL =4
             DO 981 I = 1,M
               T(I,1:N) = ALPHA*A(1:N,I)
   981       CONTINUE
