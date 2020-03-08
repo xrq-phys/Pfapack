@@ -12,10 +12,12 @@ OBJECTS= slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 	 zsktf2.o zsktrd.o zsktrf.o mul10.o\
 	 precision.o f77_interface.o f95_interface.o message.o \
 	 skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
-	 sktrf.o sktf2.o skbtrd.o
+	 sktrf.o sktf2.o skbtrd.o mgemm_sse.o
 
+CC = gcc
+CFLAGS = -O3 -march=native
 FORT = gfortran
-FFLAGS = -O3 -fimplicit-none
+FFLAGS = -O3 -march=native -fimplicit-none
 
 all: $(OBJECTS)
 	$(AR) rvu libpfapack.a $(OBJECTS)
@@ -32,3 +34,10 @@ clean:
 
 .f.o:
 	$(FORT) $(FFLAGS) -c $< -o $@
+
+.SUFFIXES: .o .c
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
+
