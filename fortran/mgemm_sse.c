@@ -115,7 +115,8 @@ void adddot4x4_( int *k_, double *alpha_,
 }
 
 void adddott4x4_( int *k_, double *alpha_, 
-        double *a, int *lda_,  double *b, int *ldb_, double *c, int *ldc_ )
+        double *a, int *lda_,  double *b, int *ldb_, double *c, int *ldc_, 
+        double *anext, double *bnext, double *cnext )
 {
   int p,
       k = *k_,
@@ -147,12 +148,14 @@ void adddott4x4_( int *k_, double *alpha_,
     a_0p_a_1p_vreg.v = _mm_load_pd( (double *) a );
     a_2p_a_3p_vreg.v = _mm_load_pd( (double *) ( a+2 ) );
     a += lda;
+    _mm_prefetch( (double *) a, 1 );
 
     b_p0_vreg.v = _mm_loaddup_pd( (double *) b );         /* load and duplicate */
     b_p1_vreg.v = _mm_loaddup_pd( (double *) ( b+1 ) );   /* load and duplicate */
     b_p2_vreg.v = _mm_loaddup_pd( (double *) ( b+2 ) );   /* load and duplicate */
     b_p3_vreg.v = _mm_loaddup_pd( (double *) ( b+3 ) );   /* load and duplicate */
     b += ldb;
+    _mm_prefetch( (double *) b, 1 );
 
     /* First row and second rows */
     c_00_c_10_vreg.v += a_0p_a_1p_vreg.v * b_p0_vreg.v;
@@ -176,6 +179,11 @@ void adddott4x4_( int *k_, double *alpha_,
   c_21_c_31_vreg.v *= alpha_vreg.v;
   c_22_c_32_vreg.v *= alpha_vreg.v;
   c_23_c_33_vreg.v *= alpha_vreg.v;
+
+  /* Fetch the next matrix */
+  _mm_prefetch( (double *) anext, 1 );
+  _mm_prefetch( (double *) bnext, 1 );
+  _mm_prefetch( (double *) cnext, 2 );
 
   /* write back to memory */
   C( 0, 0 ) += c_00_c_10_vreg.d[0];  C( 0, 1 ) += c_01_c_11_vreg.d[0];
