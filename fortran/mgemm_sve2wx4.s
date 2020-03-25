@@ -11,9 +11,9 @@
 // x7: LDC
 	.arch	armv8.2-a+sve
 	.text
-	.global	_dmgemm_sve2wx4
-	.type	_dmgemm_sve2wx4, %function
-_dmgemm_sve2wx4:
+	.global	dmgemm_sve2wx4_
+	.type	dmgemm_sve2wx4_, %function
+dmgemm_sve2wx4_:
 	.cfi_startproc
 	ldp	x9, x10, [x0], #16	// shape M and N.
 	ldr	x8, [x0]	// loop parameter K.
