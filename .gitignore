@@ -1,4 +1,7 @@
 *.o
 *.a
+*.so
 *.mod
 *.swp
+*.out
+make.inc

@@ -1,3 +1,10 @@
+ifeq (,$(wildcard ./make.inc))
+include make.inc
+else
+include make.default
+endif
+
+
 OBJECTS = \
 	slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
 	sskmv.o sskpf10.o sskpfa.o sskr2.o ssktd2.o ssktf2.o \
@@ -15,7 +22,7 @@ OBJECTS = \
 	skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
 	sktrf.o sktf2.o skbtrd.o
 
-ifeq (TRUE,TRUE)
+ifneq (,$(HAVE_GEMMT))
 OBJECTS += \
 	blas_sskr2k.o \
 	blas_dskr2k.o \
@@ -29,11 +36,19 @@ OBJECTS += \
 	zskr2k.o
 endif
 
-FORT = gfortran
-FFLAGS = -fPIC -O3 -fimplicit-none # -m64 -fdefault-integer-8
+ifeq (,$(FORT))
+FORT = $(F90)
+endif
 
-all: $(OBJECTS)
-	$(AR) rvu libpfapack.a $(OBJECTS)
+all: libpfapack.a
+
+dll: libpfapack.so
+
+libpfapack.a: $(OBJECTS)
+	$(AR) rvu $@ $(OBJECTS)
+
+libpfapack.so: $(OBJECTS)
+	$(FORT) $(FFLAGS) -shared -o $@ $(OBJECTS) $(LFLAGS)
 
 clean:
 	rm -f *.o

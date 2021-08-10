@@ -1,13 +1,22 @@
-OBJECTS = error.o matrix_tools.o matrix_tools_s.o matrix_tools_d.o	\
+ifeq (,$(wildcard ./make.inc))
+include ../make.inc
+else
+include ../make.default
+endif
+
+FFLAGS += -I..
+
+ifeq (,$(FORT))
+FORT = $(F90)
+endif
+
+OBJECTS = ../libpfapack.a \
+	  error.o matrix_tools.o matrix_tools_s.o matrix_tools_d.o	\
 	  matrix_tools_c.o matrix_tools_z.o check_decomp.o		\
 	  check_decomp_s.o check_decomp_d.o check_decomp_c.o		\
 	  check_decomp_z.o check_pfaffian.o check_pfaffian_s.o		\
 	  check_pfaffian_d.o check_pfaffian_c.o check_pfaffian_z.o	\
 	  test_ilaenv.o
-
-FORT = gfortran
-FFLAGS = -O3 -fimplicit-none -I..
-LFLAGS = ../libpfapack.a -llapack -lblas
 
 test: test_pfaff.out test_skew.out
 	./test_skew.out
