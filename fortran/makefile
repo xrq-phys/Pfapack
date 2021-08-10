@@ -4,6 +4,9 @@ else
 include make.default
 endif
 
+ifeq (,$(FORT))
+FORT = $(F90)
+endif
 
 OBJECTS = \
 	slasktrd.o slasktrf.o sskbpf10.o sskbpfa.o sskbtrd.o \
@@ -34,10 +37,6 @@ OBJECTS += \
 	dskr2k.o \
 	cskr2k.o \
 	zskr2k.o
-endif
-
-ifeq (,$(FORT))
-FORT = $(F90)
 endif
 
 all: libpfapack.a
