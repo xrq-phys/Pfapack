@@ -63,28 +63,28 @@ SUBROUTINE test_decomp_s()
            CALL check_LTL_F77("U", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F77("L", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -93,28 +93,28 @@ SUBROUTINE test_decomp_s()
            CALL check_QTQ_F77("U", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F77("L", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -140,25 +140,25 @@ SUBROUTINE test_decomp_s()
         CALL check_LTL_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         !Then check the Householder tridiagonalization
@@ -166,25 +166,25 @@ SUBROUTINE test_decomp_s()
         CALL check_QTQ_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         DEALLOCATE(A)
@@ -206,25 +206,25 @@ SUBROUTINE test_decomp_s()
            CALL check_QTQ_band_F77("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_s("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F77("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_s("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_s("F95", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_s("F95", "SKBTRD", RES)
            END IF
 
            DEALLOCATE(A, Ad, Au)
@@ -276,28 +276,28 @@ SUBROUTINE test_decomp_d()
            CALL check_LTL_F77("U", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F77("L", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -306,28 +306,28 @@ SUBROUTINE test_decomp_d()
            CALL check_QTQ_F77("U", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F77("L", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -353,25 +353,25 @@ SUBROUTINE test_decomp_d()
         CALL check_LTL_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         !Then check the Householder tridiagonalization
@@ -379,25 +379,25 @@ SUBROUTINE test_decomp_d()
         CALL check_QTQ_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         DEALLOCATE(A)
@@ -422,25 +422,25 @@ SUBROUTINE test_decomp_d()
            CALL check_QTQ_band_F77("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_d("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F77("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_d("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_d("F95", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_d("F95", "SKBTRD", RES)
            END IF
 
            DEALLOCATE(A, Ad, Au)
@@ -492,28 +492,28 @@ SUBROUTINE test_decomp_c()
            CALL check_LTL_F77("U", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F77("L", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -522,28 +522,28 @@ SUBROUTINE test_decomp_c()
            CALL check_QTQ_F77("U", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F77("L", A, RES, WORKSP(IPARAM)/100.0E0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_s("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -569,25 +569,25 @@ SUBROUTINE test_decomp_c()
         CALL check_LTL_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_s("F95", "SKTF2", RES)
         END IF
 
         !Then check the Householder tridiagonalization
@@ -595,25 +595,25 @@ SUBROUTINE test_decomp_c()
         CALL check_QTQ_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_s("F95", "SKTD2", RES)
         END IF
 
         DEALLOCATE(A)
@@ -638,25 +638,25 @@ SUBROUTINE test_decomp_c()
            CALL check_QTQ_band_F77("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_s("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F77("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_s("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_s("F95", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_s("F95", "SKBTRD", RES)
            END IF
 
            DEALLOCATE(A, Ad, Au)
@@ -707,28 +707,28 @@ SUBROUTINE test_decomp_z()
            CALL check_LTL_F77("U", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F77("L", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95", "SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_LTL_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95","SKTRF", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -737,28 +737,28 @@ SUBROUTINE test_decomp_z()
            CALL check_QTQ_F77("U", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F77("L", A, RES, WORKSP(IPARAM)/100.0D0)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F77", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("U", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
            CALL check_QTQ_F95("L", A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_blocked("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
+              CALL error_blocked_d("F95", "SKTRD", RES, NB(IPARAM), NBMIN(IPARAM), &
                    NX(IPARAM), WORKSP(IPARAM))
            END IF
 
@@ -784,25 +784,25 @@ SUBROUTINE test_decomp_z()
         CALL check_LTL_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         CALL check_LTL_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTF2", RES)
+           CALL error_unblocked_d("F95", "SKTF2", RES)
         END IF
 
         !Then check the Householder tridiagonalization
@@ -810,25 +810,25 @@ SUBROUTINE test_decomp_z()
         CALL check_QTQ_noblock_F77("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F77("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("U", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         CALL check_QTQ_noblock_F95("L", A, RES)
 
         IF( RES > 20.0 ) THEN
-           CALL error_unblocked("F95", "SKTD2", RES)
+           CALL error_unblocked_d("F95", "SKTD2", RES)
         END IF
 
         DEALLOCATE(A)
@@ -853,25 +853,25 @@ SUBROUTINE test_decomp_z()
            CALL check_QTQ_band_F77("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_d("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F77("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F77", "SKBTRD", RES)
+              CALL error_unblocked_d("F77", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("U", Au, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_d("F95", "SKBTRD", RES)
            END IF
 
            CALL check_QTQ_band_F95("L", Ad, A, RES)
 
            IF( RES > 20.0 ) THEN
-              CALL error_unblocked("F95", "SKBTRD", RES)
+              CALL error_unblocked_d("F95", "SKBTRD", RES)
            END IF
 
            DEALLOCATE(A, Ad, Au)
@@ -880,24 +880,3 @@ SUBROUTINE test_decomp_z()
   END DO
 END SUBROUTINE test_decomp_z
 
-SUBROUTINE error_blocked(INTF, ROUT, RES, NB, NBMIN, NX, REALWS)
-  CHARACTER(LEN=*) :: INTF, ROUT
-  REAL(KIND(1.0D0)) :: RES
-  INTEGER :: NB, NBMIN, NX, REALWS
-
-  WRITE (*,*) "Error in the ",INTF, " interface of routine ",ROUT
-  WRITE (*,*) "Residual is  ", RES
-  WRITE (*,*) "NB=",NB, "NBMIN=", NBMIN, "NX=", NX, REALWS, "% of workspace"
-
-  STOP
-END SUBROUTINE error_blocked
-
-SUBROUTINE error_unblocked(INTF, ROUT, RES)
-  CHARACTER(LEN=*) :: INTF, ROUT
-  REAL(KIND(1.0D0)) :: RES
-
-  WRITE (*,*) "Error in the ",INTF, " interface of routine ",ROUT
-  WRITE (*,*) "Residual is  ", RES
-
-  STOP
-END SUBROUTINE error_unblocked

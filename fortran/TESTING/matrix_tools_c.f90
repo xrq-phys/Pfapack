@@ -130,8 +130,8 @@ SUBROUTINE make_skew_mat_c(A, PROB)
 
   DO I=1, N
      DO J=1, I-1
-        IF(RAND(0) <= P) THEN
-           A(I,J)=CMPLX(RAND(0)*2-1,RAND(0)*2-1)
+        IF(RAND(0_4) <= P) THEN
+           A(I,J)=CMPLX(RAND(0_4)*2-1,RAND(0_4)*2-1)
            A(J,I)=-A(I,J)
         END IF
      END DO
@@ -162,8 +162,8 @@ SUBROUTINE make_skew_mat_banded_c(Au, Ad, A, PROB)
   DO I=1,N
      DO J=1, I-1
         IF( I-J < KD ) THEN
-           IF(RAND(0) <= P) THEN
-              A(I,J)=CMPLX(RAND(0)*2-1, RAND(0)*2-1)
+           IF(RAND(0_4) <= P) THEN
+              A(I,J)=CMPLX(RAND(0_4)*2-1, RAND(0_4)*2-1)
               A(J,I)=-A(I,J)
 
               Au(KD+J-I,I) = A(J,I)
