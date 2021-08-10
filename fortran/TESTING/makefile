@@ -1,8 +1,4 @@
-ifeq (,$(wildcard ./make.inc))
 include ../make.inc
-else
-include ../make.default
-endif
 
 FFLAGS += -I..
 
