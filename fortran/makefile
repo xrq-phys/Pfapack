@@ -16,10 +16,14 @@ OBJECTS = \
 	csktrd.o csktrf.o \
 	zlasktrd.o zlasktrf.o zskbpf10.o zskbpfa.o zskbtrd.o \
 	zskmv.o zskpf10.o zskpfa.o zskr2.o zsktd2.o zsktf2.o \
-	zsktrd.o zsktrf.o mul10.o \
+	zsktrd.o zsktrf.o mul10.o
+
+ifneq (,$(BUILD_F90))
+OBJECTS += \
 	precision.o f77_interface.o f95_interface.o message.o \
 	skpfa.o skpf10.o skbpfa.o skbpf10.o sktrd.o sktd2.o \
 	sktrf.o sktf2.o skbtrd.o
+endif
 
 ifneq (,$(HAVE_GEMMT))
 OBJECTS += \

@@ -2,6 +2,10 @@ include ../make.inc
 
 FFLAGS += -I..
 
+ifeq (,$(BUILD_F90))
+$(error Testing routine requires F95 interface be built. Set BUILD_F90 = 1 in make.inc and rebuild)
+endif
+
 ifeq (,$(FORT))
 FORT = $(F90)
 endif

@@ -1,5 +1,6 @@
 F90 = gfortran
 FFLAGS = -fPIC -O3 -fimplicit-none
+BUILD_F90 = 1
 
 HAVE_GEMMT =
 LFLAGS = -llapack -lblas
