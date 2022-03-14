@@ -7,9 +7,8 @@ SET(SOURCES_PFAPACK
    	dlasktrf.f dskpfa.f dskr2k.f dsktf2.f dsktrf.f
    	zlasktrf.f zskpfa.f zskr2k.f zsktf2.f zsktrf.f
 	)
-INCLUDE_DIRECTORIES(${MPI_Fortran_INCLUDE_PATH})
 ADD_LIBRARY(pfapack ${SOURCES_PFAPACK})
-TARGET_LINK_LIBRARIES(pfapack ${MPI_Fortran_LIBRARIES} ${LAPACK_LIBRARIES})
+TARGET_LINK_LIBRARIES(pfapack ${LAPACK_LIBRARIES})
 INSTALL(TARGETS pfapack
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
