@@ -265,56 +265,58 @@
          IPIV( 1 ) = 1
 
          DO 20 K0=1, N-1, 2
-            DO 21 K1=0, 1
-            K = K0 + K1
-            IF( K1.EQ.0 .OR. NORMAL ) THEN
-*     Find the pivot
-               KP = K + IDAMAX(N-K, A( K+1, K ), 1)
-               COLMAX = ABS( A( KP, K ) )
 
-               IF( COLMAX.EQ.ZERO ) THEN
+*     Pivoting for one or two columns
+            DO 21 K1=0, 1
+               K = K0 + K1
+               IF( K1.EQ.0 .OR. NORMAL ) THEN
+*     Find the pivot
+                  KP = K + IDAMAX(N-K, A( K+1, K ), 1)
+                  COLMAX = ABS( A( KP, K ) )
+
+                  IF( COLMAX.EQ.ZERO ) THEN
 *     The column is completely zero - do nothing
-                  IF( INFO.EQ.0 ) THEN
-                     INFO = K
+                     IF( INFO.EQ.0 ) THEN
+                        INFO = K
+                     END IF
+                     KP = K+1
                   END IF
-                  KP = K+1
-               END IF
 
 *     swap rows and columns K+1 and IMAX in the
 *     full matrix A(1:N,1:N)
-               KK = K+1
+                  KK = K+1
 
-               IF( KP .NE. KK ) THEN
-                  IF( KP.LT.N ) THEN
-                     CALL DSWAP( N-KP, A( KP+1, KK ), 1,
-     $                    A( KP+1, KP ),1 )
+                  IF( KP .NE. KK ) THEN
+                     IF( KP.LT.N ) THEN
+                        CALL DSWAP( N-KP, A( KP+1, KK ), 1,
+     $                       A( KP+1, KP ),1 )
+                     END IF
+
+                     CALL DSWAP( KP-KK-1, A( KK+1, KK ), 1,
+     $                    A( KP, KK+1 ), LDA )
+
+                     CALL DSWAP( K, A( KK, 1), LDA, A( KP, 1), LDA)
+
+                     CALL DSCAL(KP-KK, -ONE, A(KK+1, KK), 1)
+                     CALL DSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
                   END IF
-
-                  CALL DSWAP( KP-KK-1, A( KK+1, KK ), 1,
-     $                 A( KP, KK+1 ), LDA )
-
-                  CALL DSWAP( K, A( KK, 1), LDA, A( KP, 1), LDA)
-
-                  CALL DSCAL(KP-KK, -ONE, A(KK+1, KK), 1)
-                  CALL DSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
-               END IF
 *     Store Pivot
-               IPIV( K+1 ) = KP
-            ELSE
-               IPIV( K+1 ) = K+1
-            END IF
+                  IPIV( K+1 ) = KP
+               ELSE
+                  IPIV( K+1 ) = K+1
+               END IF
  21         CONTINUE
 
-               K = K0
+            K = K0
 
-               IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
-                  IF( .NOT. NORMAL ) THEN
+            IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
+               IF( .NOT. NORMAL ) THEN
 *     Update the trailing submatrix A(K+2:N, K+2:N) in a rank 2 update
 *     (The column/row K+1 is not affected by the update)
-                     CALL DSKR2( UPLO, N-K-1, ONE/A( K+1,K ),
-     $                    A( K+2, K ), 1, A( K+2, K+1 ), 1,
-     $                    A( K+2, K+2 ), LDA )
-                  ELSE
+                  CALL DSKR2( UPLO, N-K-1, ONE/A( K+1,K ),
+     $                 A( K+2, K ), 1, A( K+2, K+1 ), 1,
+     $                 A( K+2, K+2 ), LDA )
+               ELSE
 *     In case of full factorization, additional operations are needed:
 *     1. Skipped column/row K+1 should be edited.
 *     2. SKR2 needs additional corrections for subsequent even columns.
@@ -322,29 +324,29 @@
 
 *     OP 1: A( K+1, K ) is already the element of T. Skip
 *     OP 2: A( K+2:N, K ) scales for L by A( K+1, K ).
-                     CALL DSCAL(N-K-1, ONE/A( K+1, K ), A(K+2, K), 1)
+                  CALL DSCAL(N-K-1, ONE/A( K+1, K ), A(K+2, K), 1)
 *     OP 3 through 8 are for even-column corrections.
 *     OP 4: A( K+2, K+1 ) is already the element of T. Skip
 *     OP 5: A( K+3:N, K+1 ) scales for L by A( K+2, K+1 )
-                     CALL DSCAL(N-K-2, ONE/A(K+2, K+1), A(K+3, K+1), 1)
+                  CALL DSCAL(N-K-2, ONE/A(K+2, K+1), A(K+3, K+1), 1)
 *     OP 6: Do a rank-2 update on A( K+3:N, K+3:N ),
 *           where a correction term is casted on A( K+3, K+2 )
-                     CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K),
-     $                    A( K+3, K+1 ), 1,
-     $                    A( K+3, K+2 ), 1 )
-                     CALL DSKR2( UPLO, N-K-2, ONE,
-     $                    A( K+3, K+1 ), 1,
-     $                    A( K+3, K+2 ), 1,
-     $                    A( K+3, K+3 ), LDA )
+                  CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K),
+     $                 A( K+3, K+1 ), 1,
+     $                 A( K+3, K+2 ), 1 )
+                  CALL DSKR2( UPLO, N-K-2, ONE,
+     $                 A( K+3, K+1 ), 1,
+     $                 A( K+3, K+2 ), 1,
+     $                 A( K+3, K+3 ), LDA )
 *     OP 7&8: A( K+3:N, K+2 ) has two correction terms
-                     CALL DAXPY( N-K-2, A(K+2, K+1),
-     $                    A( K+3, K   ), 1,
-     $                    A( K+3, K+2 ), 1 )
-                     CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K) * (-2),
-     $                    A( K+3, K+1 ), 1,
-     $                    A( K+3, K+2 ), 1 )
-                  END IF
+                  CALL DAXPY( N-K-2, A(K+2, K+1),
+     $                 A( K+3, K   ), 1,
+     $                 A( K+3, K+2 ), 1 )
+                  CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K) * (-2),
+     $                 A( K+3, K+1 ), 1,
+     $                 A( K+3, K+2 ), 1 )
                END IF
+            END IF
  20      CONTINUE
 
       END IF
