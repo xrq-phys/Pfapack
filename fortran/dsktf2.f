@@ -203,15 +203,15 @@
 *     Quick return if possible
       IF( N .EQ. 0 ) RETURN
 
-      IF( NORMAL ) THEN
-         STEP = 1
-      ELSE
-         STEP = 2
-      END IF
-
       IF( UPPER ) THEN
 *     Factorize A as U * T * U^T using the upper triangle of A
          IPIV( N ) = N
+
+         IF( NORMAL ) THEN
+            STEP = 1
+         ELSE
+            STEP = 2
+         END IF
 
          DO 10 K=N, 2, -1
 *     Either all columns or only the even ones (MODE = 'P')
@@ -264,6 +264,8 @@
 
          IPIV( 1 ) = 1
 
+         STEP = 2
+
          DO 20 K=1, N-1
 *     Either all columns or only the odd ones (MODE = 'P')
             IF( MOD(K, STEP).EQ.1 .OR. STEP.EQ.1 ) THEN
@@ -298,15 +300,43 @@
                   CALL DSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
                END IF
 
+               IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
+                  IF( .NOT. NORMAL ) THEN
 *     Update the trailing submatrix A(K+2:N, K+2:N) in a rank 2 update
 *     (The column/row K+1 is not affected by the update)
-               IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
-                  CALL DSKR2( UPLO, N-K-1, ONE/A( K+1,K ),
-     $                 A( K+2, K ), 1, A( K+2, K+1 ), 1,
-     $                 A( K+2, K+2 ), LDA )
+                     CALL DSKR2( UPLO, N-K-1, ONE/A( K+1,K ),
+     $                    A( K+2, K ), 1, A( K+2, K+1 ), 1,
+     $                    A( K+2, K+2 ), LDA )
+                  ELSE
+*     In case of full factorization, additional operations are needed:
+*     1. Skipped column/row K+1 should be edited.
+*     2. SKR2 needs additional corrections for subsequent even columns.
+*     3. L's columns will be stored.
 
-*     Store L(k+1) in A(k)
-                  CALL DSCAL(N-K-1, ONE/A( K+1, K ), A(K+2, K), 1)
+*     OP 1: A( K+1, K ) is already the element of T. Skip
+*     OP 2: A( K+2:N, K ) scales for L by A( K+1, K ).
+                     CALL DSCAL(N-K-1, ONE/A( K+1, K ), A(K+2, K), 1)
+*     OP 3 through 8 are for even-column corrections.
+*     OP 4: A( K+2, K+1 ) is already the element of T. Skip
+*     OP 5: A( K+3:N, K+1 ) scales for L by A( K+2, K+1 )
+                     CALL DSCAL(N-K-2, ONE/A(K+2, K+1), A(K+3, K+1), 1)
+*     OP 6: Do a rank-2 update on A( K+3:N, K+3:N ),
+*           where a correction term is casted on A( K+3, K+2 )
+                     CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K),
+     $                    A( K+3, K+1 ), 1,
+     $                    A( K+3, K+2 ), 1 )
+                     CALL DSKR2( UPLO, N-K-2, ONE,
+     $                    A( K+3, K+1 ), 1,
+     $                    A( K+3, K+2 ), 1,
+     $                    A( K+3, K+3 ), LDA )
+*     OP 7&8: A( K+3:N, K+2 ) has two correction terms
+                     CALL DAXPY( N-K-2, A(K+2, K+1),
+     $                    A( K+3, K   ), 1,
+     $                    A( K+3, K+2 ), 1 )
+                     CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K) * (-2),
+     $                    A( K+3, K+1 ), 1,
+     $                    A( K+3, K+2 ), 1 )
+                  END IF
                END IF
 
 *     Store Pivot
