@@ -161,7 +161,7 @@
 
 *     .. Local Scalars ..
       LOGICAL            UPPER, NORMAL
-      INTEGER            K, KK, KP, STEP
+      INTEGER            K0, K1, K, KK, KP, STEP
       DOUBLE PRECISION   COLMAX
 *     ..
 *     .. External Functions ..
@@ -264,11 +264,10 @@
 
          IPIV( 1 ) = 1
 
-         STEP = 2
-
-         DO 20 K=1, N-1
-*     Either all columns or only the odd ones (MODE = 'P')
-            IF( MOD(K, STEP).EQ.1 .OR. STEP.EQ.1 ) THEN
+         DO 20 K0=1, N-1, 2
+            DO 21 K1=0, 1
+            K = K0 + K1
+            IF( K1.EQ.0 .OR. NORMAL ) THEN
 *     Find the pivot
                KP = K + IDAMAX(N-K, A( K+1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
@@ -299,6 +298,14 @@
                   CALL DSCAL(KP-KK, -ONE, A(KK+1, KK), 1)
                   CALL DSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
                END IF
+*     Store Pivot
+               IPIV( K+1 ) = KP
+            ELSE
+               IPIV( K+1 ) = K+1
+            END IF
+ 21         CONTINUE
+
+               K = K0
 
                IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
                   IF( .NOT. NORMAL ) THEN
@@ -338,12 +345,6 @@
      $                    A( K+3, K+2 ), 1 )
                   END IF
                END IF
-
-*     Store Pivot
-               IPIV( K+1 ) = KP
-            ELSE
-               IPIV( K+1 ) = K+1
-            END IF
  20      CONTINUE
 
       END IF
