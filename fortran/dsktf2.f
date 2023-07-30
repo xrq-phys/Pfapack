@@ -161,7 +161,7 @@
 
 *     .. Local Scalars ..
       LOGICAL            UPPER, NORMAL
-      INTEGER            K0, K1, K, KK, KP, STEP
+      INTEGER            K0, K1, K, KK, KP
       DOUBLE PRECISION   COLMAX
 *     ..
 *     .. External Functions ..
@@ -189,8 +189,8 @@
          INFO = -2
       ELSE IF( N.LT.0 ) THEN
          INFO = -3
-      ELSE IF( .NOT.NORMAL .AND. MOD(N,2).EQ.1 ) THEN
-*     If STEP == 2, we need an even-dimensional matrix
+      ELSE IF( MOD(N,2).EQ.1 ) THEN
+*     We need an even-dimensional matrix
          INFO = -3
       ELSE IF( LDA.LT.MAX( 1, N ) ) THEN
          INFO = -5
@@ -207,15 +207,12 @@
 *     Factorize A as U * T * U^T using the upper triangle of A
          IPIV( N ) = N
 
-         IF( NORMAL ) THEN
-            STEP = 1
-         ELSE
-            STEP = 2
-         END IF
-
-         DO 10 K=N, 2, -1
+         DO 10 K0=N, 2, -2
+*     Pivoting for one or two columns
+         DO 11 K1=0, -1, -1
+            K = K0 + K1
 *     Either all columns or only the even ones (MODE = 'P')
-            IF( MOD(K, STEP) .EQ. 0) THEN
+            IF( K1.EQ.0 .OR. NORMAL ) THEN
 *     Find the pivot
                KP = IDAMAX(K-1, A( 1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
@@ -242,20 +239,40 @@
                   CALL DSCAL(KK-KP, -ONE, A(KP, KK), 1)
                   CALL DSCAL(KK-KP-1, -ONE, A(KP, KP+1), LDA)
                END IF
-
-*     Update the leading submatrix A(1:K-2, 1:K-2) in a rank 2 update
-*     (The column/row K-1 is not affected by the update)
-               IF( COLMAX .NE. ZERO ) THEN
-                  CALL DSKR2( UPLO, K-2, ONE/A( K-1,K ), A( 1, K ), 1,
-     $                 A( 1, K-1 ), 1, A( 1, 1 ), LDA )
-
-*     Store L(k+1) in A(k)
-                  CALL DSCAL(K-2, ONE/A( K-1, K ), A(1, K), 1)
-               END IF
 *     Store Pivot
                IPIV( K-1 ) = KP
             ELSE
                IPIV( K-1 ) = K-1
+            END IF
+11       CONTINUE
+
+            K = K0
+
+*     Update the leading submatrix A(1:K-2, 1:K-2) in a rank 2 update
+*     (The column/row K-1 is not affected by the update)
+            IF( COLMAX .NE. ZERO .AND. K-3 .GE. 0 ) THEN
+               IF ( .NOT. NORMAL ) THEN
+                  CALL DSKR2( UPLO, K-2, ONE/A( K-1,K ), A( 1, K ), 1,
+     $                 A( 1, K-1 ), 1, A( 1, 1 ), LDA )
+               ELSE
+*     Full factorization also calls DSKR2 once, but with corrections.
+*     See below UPLO=='L' case for details.
+                  CALL DSCAL(K-2, ONE/A( K-1, K ), A(1, K), 1)
+                  CALL DSCAL(K-3, ONE/A( K-2, K-1 ), A(1, K-1), 1)
+                  CALL DAXPY( K-3, A(K-2, K-1) * A(K-2, K),
+     $                 A( 1, K-1 ), 1,
+     $                 A( 1, K-2 ), 1 )
+                  CALL DSKR2( UPLO, K-3, ONE,
+     $                 A( 1, K-1 ), 1,
+     $                 A( 1, K-2 ), 1,
+     $                 A( 1, 1 ), LDA )
+                  CALL DAXPY( K-3, A(K-2, K-1),
+     $                 A( 1, K   ), 1,
+     $                 A( 1, K-2 ), 1 )
+                  CALL DAXPY( K-3, A(K-2, K-1) * A(K-2, K) * (-2),
+     $                 A( 1, K-1 ), 1,
+     $                 A( 1, K-2 ), 1 )
+               END IF
             END IF
 10      CONTINUE
 
