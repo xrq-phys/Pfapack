@@ -93,7 +93,8 @@
       PARAMETER          ( ZERO = 0.0D+0, ONE = 1.0D+0 )
 
 *     .. Local Scalars ..
-      INTEGER            K, KK, KP, NPANEL, WK
+      LOGICAL            NORMAL
+      INTEGER            K, K0, K1, KK, KP, NPANEL, WK
       DOUBLE PRECISION   COLMAX, T
 *     ..
 *     .. External Functions ..
@@ -103,6 +104,7 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           DSCAL, DSWAP, DSKR2K, DCOPY, DGEMV, XERBLA
+      EXTERNAL           DSKR2, DGER
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, MAX
@@ -112,8 +114,9 @@
 *     No safety checks, it's an internal function
 
       INFO = 0
+      NORMAL = .NOT. LSAME( MODE, 'P' )
 
-      IF( LSAME( MODE, 'P' ) ) THEN
+      IF( NORMAL ) THEN
          STEP = 2
       ELSE
          STEP = 1
@@ -259,8 +262,12 @@
 *     columns (only), then apply the accumulated transformations to the rest
 *     of the matrix
 
+         STEP = 2
+         NPANEL = NB * STEP
          WK = 0
-         DO 30 K=1, MIN(NPANEL, N-1)
+         DO 30 K0=1, MIN(NPANEL, N-1), 2
+         DO 31 K1=0, 1
+            K = K0 + K1
 
 *
 *     Update A(K+1:n,K+1) with all the accumulated transformations
@@ -271,7 +278,7 @@
 
             IF( K .GT. 1) THEN
 
-               IF( WK .GT. 0) THEN
+               IF( .NOT. NORMAL .AND. WK .GT. 0) THEN
                   A( K, K ) = ZERO
                   CALL DGEMV( 'N', N-K+1, WK, +ONE, A( K, 1 ),
      $                 LDA*STEP, W( K, 1 ), LDW, ONE, A( K, K ), 1 )
@@ -281,18 +288,23 @@
                END IF
 
 *     Store the (updated) column K in W(:,WK)
-               IF( MOD(K, STEP) . EQ. 0 ) THEN
+               IF( .NOT. NORMAL .AND. MOD(K, STEP) . EQ. 0 ) THEN
                   WK = WK + 1
                   CALL DCOPY(N-K+1, A(K, K), 1, W(K, WK), 1)
                END IF
             END IF
 
-            IF( MOD(K, STEP) .EQ. 1 .OR. STEP .EQ. 1) THEN
+            IF( K1.EQ.0 .OR. NORMAL) THEN
 *     For STEP == 1, process every column, but if
 *     STEP == 2, do only things for the odd columns
 
 *     Find the pivot
-               KP = K + IDAMAX(N-K, A( K+1, K ), 1)
+               IF( .NOT. NORMAL ) THEN
+                  KP = K + IDAMAX(N-K, A( K+1, K ), 1)
+               ELSE
+*     FIXME: Inter-panel exchange fails?
+                  KP = K + IDAMAX(NPANEL-K, A( K+1, K ), 1)
+               END IF
                COLMAX = ABS( A( KP, K ) )
 
                IF( COLMAX.EQ.ZERO ) THEN
@@ -328,10 +340,6 @@
                END IF
 
 *     (The column/row K+1 is not affected by the update)
-               IF( COLMAX .NE. ZERO .AND. K .LE. N-2) THEN
-*     Store L(k+1) in A(k)
-                  CALL DSCAL( N-K-1, ONE/A( K+1, K ), A(K+2, K), 1 )
-               END IF
 
 *     Delay the update of the trailing submatrix (done at the beginning
 *     of each loop for every column of the first NB columns, and then
@@ -344,10 +352,53 @@
 *     STEP == 2 and an even column, do nothing
                IPIV(K+1) = K+1
             END IF
+ 31      CONTINUE
+
+            K = K0
+
+            IF( K .LE. N-2 .AND. NORMAL ) THEN
+*     Store L: two columns
+               CALL DSCAL( N-K-1, ONE/A( K+1, K ), A(K+2, K), 1 )
+               CALL DSCAL( N-K-2, ONE/A( K+2, K+1), A(K+3, K+1), 1 )
+*     Calculate SKR2's b-vector. Copy the leading zero at init
+               WK = WK + 1
+               CALL DCOPY( N-K-1, A(K+2, K+2), 1, W(K+2, WK), 1 )
+               CALL DAXPY( N-K-2, A(K+2, K+1) * A(K+2, K),
+     $              A( K+3, K+1 ), 1,
+     $              W( K+3, WK ), 1 )
+*     Update A(:, K+2) (the next iter's target)
+               CALL DAXPY( N-K-2, A(K+2, K+1),
+     $              A( K+3, K   ), 1,
+     $              A( K+3, K+2 ), 1 )
+               CALL DAXPY( N-K-2, -A(K+2, K+1) * A(K+2, K),
+     $              A( K+3, K+1 ), 1,
+     $              A( K+3, K+2 ), 1 )
+*     Perform SKR2 partially.
+               IF ( NPANEL-K-2 .GT. 0 ) THEN
+                  CALL DSKR2( UPLO, NPANEL-K-2, ONE,
+     $                 A( K+3, K+1 ), 1,
+     $                 W( K+3, WK ), 1,
+     $                 A( K+3, K+3 ), LDA )
+                  CALL DGER( N-NPANEL, NPANEL-K-1, ONE,
+     $                 A( 1+NPANEL, K+1 ), 1,
+     $                 W( K+3, WK ), 1,
+     $                 A( 1+NPANEL, K+3 ), LDA )
+                  CALL DGER( N-NPANEL, NPANEL-K-1, -ONE,
+     $                 W( 1+NPANEL, WK ), 1,
+     $                 A( K+3, K+1 ), 1,
+     $                 A( 1+NPANEL, K+3 ), LDA )
+               END IF
+            END IF
  30      CONTINUE
 
 *     Now update the trailing A(NB+1:N, NB+1:N) submatrix in a level 3 update,
 *     if necessary
+         IF( NPANEL .LT. N-1 .AND. NORMAL ) THEN
+            CALL DSKR2K( UPLO, "N", N-NPANEL-1, WK, ONE,
+     $           A(NPANEL+2,2), LDA*STEP,
+     $           W(NPANEL+2,1), LDW, ONE, A(NPANEL+2, NPANEL+2), LDA)
+            RETURN
+         END IF
 
          IF( NPANEL .LT. N-1) THEN
 *     For this we have to set the NB+1,NB entry to zero, but restore it later

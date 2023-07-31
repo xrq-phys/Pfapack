@@ -296,6 +296,7 @@
 *        Factorize A as L*T*L^T using the lower triangle of A
 
          IPIV( 1 ) = 1
+         NPANEL = MIN(NB*2, N)
 *
 *        Loop throgh the system in steps of NPANEL
          DO 30 K = 1, MIN(N-NPANEL+1, N-1), NPANEL
