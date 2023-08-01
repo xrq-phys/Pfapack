@@ -238,11 +238,7 @@
 *     Quick return if possible
       IF( N .EQ. 0 ) RETURN
 
-      IF( LSAME( MODE, 'N' ) ) THEN
-         NPANEL = NB
-      ELSE
-         NPANEL = MIN(NB*2, N)
-      END IF
+      NPANEL = MIN(NB*2, N)
 
       IF( UPPER ) THEN
 *
@@ -257,6 +253,7 @@
 *
 *     Factorize columns k-nb*step+1:k of A and use blocked code to
 *     update columns 1:k-nb*step
+               PRINT *, 'BLOCKED'
 *
                CALL ZLASKTRF( UPLO, MODE, K, NB, A, LDA,
      $                        IPIV, WORK, N, IINFO )

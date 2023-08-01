@@ -21,7 +21,7 @@
 *  the transpose), T is a skew-symmetric tridiagonal matrix and P
 *  is a permutation matrix. In addition to being unit triangular,
 *  U(1:n-1,n)=0 and L(2:n,1)=0.
-*  Instead of a full tridiagonalization, DFSKTF2 can also compute a
+*  Instead of a full tridiagonalization, ZFSKTF2 can also compute a
 *  partial tridiagonal form for computing the Pfaffian.
 *
 *  This is the unblocked version of the algorithm, calling Level 2 BLAS.
@@ -162,7 +162,7 @@
 
 *     .. Local Scalars ..
       LOGICAL            UPPER, NORMAL
-      INTEGER            K, KK, KP, STEP
+      INTEGER            K0, K1, K, KK, KP
       DOUBLE PRECISION   COLMAX
 *     ..
 *     .. External Functions ..
@@ -174,7 +174,7 @@
       EXTERNAL           ZSCAL, ZSWAP, ZSKR2, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
-      INTRINSIC          ABS, MAX, SQRT
+      INTRINSIC          ABS, MAX
 *     ..
 *     .. Executable Statements ..
 *
@@ -190,8 +190,8 @@
          INFO = -2
       ELSE IF( N.LT.0 ) THEN
          INFO = -3
-      ELSE IF( .NOT.NORMAL .AND. MOD(N,2).EQ.1 ) THEN
-*     If STEP == 2, we need an even-dimensional matrix
+      ELSE IF( MOD(N,2).EQ.1 ) THEN
+*     We need an even-dimensional matrix
          INFO = -3
       ELSE IF( LDA.LT.MAX( 1, N ) ) THEN
          INFO = -5
@@ -204,19 +204,16 @@
 *     Quick return if possible
       IF( N .EQ. 0 ) RETURN
 
-      IF( NORMAL ) THEN
-         STEP = 1
-      ELSE
-         STEP = 2
-      END IF
-
       IF( UPPER ) THEN
 *     Factorize A as U * T * U^T using the upper triangle of A
          IPIV( N ) = N
 
-         DO 10 K=N, 2, -1
+         DO 10 K0=N, 2, -2
+*     Pivoting for one or two columns
+         DO 11 K1=0, -1, -1
+            K = K0 + K1
 *     Either all columns or only the even ones (MODE = 'P')
-            IF( MOD(K, STEP) .EQ. 0) THEN
+            IF( K1.EQ.0 .OR. NORMAL ) THEN
 *     Find the pivot
                KP = IZAMAX(K-1, A( 1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
@@ -232,6 +229,7 @@
 *     swap rows and columns K+1 and IMAX in the
 *     full sub-matrix A(1:N,1:N)
                KK = K-1
+               IF( KK .LT. 1 ) CONTINUE
 
                IF( KP .NE. KK ) THEN
                   CALL ZSWAP( KP-1, A( 1, KK ), 1, A( 1, KP ), 1)
@@ -243,20 +241,40 @@
                   CALL ZSCAL(KK-KP, -ONE, A(KP, KK), 1)
                   CALL ZSCAL(KK-KP-1, -ONE, A(KP, KP+1), LDA)
                END IF
-
-*     Update the leading submatrix A(1:K-2, 1:K-2) in a rank 2 update
-*     (The column/row K-1 is not affected by the update)
-               IF( COLMAX .NE. ZERO ) THEN
-                  CALL ZSKR2( UPLO, K-2, ONE/A( K-1,K ), A( 1, K ), 1,
-     $                 A( 1, K-1 ), 1, A( 1, 1 ), LDA )
-
-*     Store L(k+1) in A(k)
-                  CALL ZSCAL(K-2, ONE/A( K-1, K ), A(1, K), 1)
-               END IF
 *     Store Pivot
                IPIV( K-1 ) = KP
             ELSE
                IPIV( K-1 ) = K-1
+            END IF
+11       CONTINUE
+
+            K = K0
+
+*     Update the leading submatrix A(1:K-2, 1:K-2) in a rank 2 update
+*     (The column/row K-1 is not affected by the update)
+            IF( COLMAX .NE. ZERO .AND. K-3 .GE. 0 ) THEN
+               IF ( .NOT. NORMAL ) THEN
+                  CALL ZSKR2( UPLO, K-2, ONE/A( K-1,K ), A( 1, K ), 1,
+     $                 A( 1, K-1 ), 1, A( 1, 1 ), LDA )
+               ELSE
+*     Full factorization also calls ZSKR2 once, but with corrections.
+*     See below UPLO=='L' case for details.
+                  CALL ZSCAL(K-2, ONE/A( K-1, K ), A(1, K), 1)
+                  CALL ZSCAL(K-3, ONE/A( K-2, K-1 ), A(1, K-1), 1)
+                  CALL ZAXPY( K-3, A(K-2, K-1) * A(K-2, K),
+     $                 A( 1, K-1 ), 1,
+     $                 A( 1, K-2 ), 1 )
+                  CALL ZSKR2( UPLO, K-3, ONE,
+     $                 A( 1, K-1 ), 1,
+     $                 A( 1, K-2 ), 1,
+     $                 A( 1, 1 ), LDA )
+                  CALL ZAXPY( K-3, A(K-2, K-1),
+     $                 A( 1, K   ), 1,
+     $                 A( 1, K-2 ), 1 )
+                  CALL ZAXPY( K-3, A(K-2, K-1) * A(K-2, K) * (-2),
+     $                 A( 1, K-1 ), 1,
+     $                 A( 1, K-2 ), 1 )
+               END IF
             END IF
 10      CONTINUE
 
@@ -265,55 +283,88 @@
 
          IPIV( 1 ) = 1
 
-         DO 20 K=1, N-1
-*     Either all columns or only the odd ones (MODE = 'P')
-            IF( MOD(K, STEP).EQ.1 .OR. STEP.EQ.1 ) THEN
-*     Find the pivot
-               KP = K + IZAMAX(N-K, A( K+1, K ), 1)
-               COLMAX = ABS( A( KP, K ) )
+         DO 20 K0=1, N-1, 2
 
-               IF( COLMAX.EQ.ZERO ) THEN
+*     Pivoting for one or two columns
+            DO 21 K1=0, 1
+               K = K0 + K1
+               IF( K1.EQ.0 .OR. NORMAL ) THEN
+*     Find the pivot
+                  KP = K + IZAMAX(N-K, A( K+1, K ), 1)
+                  COLMAX = ABS( A( KP, K ) )
+
+                  IF( COLMAX.EQ.ZERO ) THEN
 *     The column is completely zero - do nothing
-                  IF( INFO.EQ.0 ) THEN
-                     INFO = K
+                     IF( INFO.EQ.0 ) THEN
+                        INFO = K
+                     END IF
+                     KP = K+1
                   END IF
-                  KP = K+1
-               END IF
 
 *     swap rows and columns K+1 and IMAX in the
 *     full matrix A(1:N,1:N)
-               KK = K+1
+                  KK = K+1
 
-               IF( KP .NE. KK ) THEN
-                  IF( KP.LT.N ) THEN
-                     CALL ZSWAP( N-KP, A( KP+1, KK ), 1,
-     $                    A( KP+1, KP ),1 )
+                  IF( KP .NE. KK ) THEN
+                     IF( KP.LT.N ) THEN
+                        CALL ZSWAP( N-KP, A( KP+1, KK ), 1,
+     $                       A( KP+1, KP ),1 )
+                     END IF
+
+                     CALL ZSWAP( KP-KK-1, A( KK+1, KK ), 1,
+     $                    A( KP, KK+1 ), LDA )
+
+                     CALL ZSWAP( K, A( KK, 1), LDA, A( KP, 1), LDA)
+
+                     CALL ZSCAL(KP-KK, -ONE, A(KK+1, KK), 1)
+                     CALL ZSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
                   END IF
-
-                  CALL ZSWAP( KP-KK-1, A( KK+1, KK ), 1,
-     $                 A( KP, KK+1 ), LDA )
-
-                  CALL ZSWAP( K, A( KK, 1), LDA, A( KP, 1), LDA)
-
-                  CALL ZSCAL(KP-KK, -ONE, A(KK+1, KK), 1)
-                  CALL ZSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
+*     Store Pivot
+                  IPIV( K+1 ) = KP
+               ELSE
+                  IPIV( K+1 ) = K+1
                END IF
+ 21         CONTINUE
 
+            K = K0
+
+            IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
+               IF( .NOT. NORMAL ) THEN
 *     Update the trailing submatrix A(K+2:N, K+2:N) in a rank 2 update
 *     (The column/row K+1 is not affected by the update)
-               IF( COLMAX .NE. ZERO .AND. K+2 .LE. N) THEN
                   CALL ZSKR2( UPLO, N-K-1, ONE/A( K+1,K ),
      $                 A( K+2, K ), 1, A( K+2, K+1 ), 1,
      $                 A( K+2, K+2 ), LDA )
+               ELSE
+*     In case of full factorization, additional operations are needed:
+*     1. Skipped column/row K+1 should be edited.
+*     2. SKR2 needs additional corrections for subsequent even columns.
+*     3. L's columns will be stored.
 
-*     Store L(k+1) in A(k)
+*     OP 1: A( K+1, K ) is already the element of T. Skip
+*     OP 2: A( K+2:N, K ) scales for L by A( K+1, K ).
                   CALL ZSCAL(N-K-1, ONE/A( K+1, K ), A(K+2, K), 1)
+*     OP 3 through 8 are for even-column corrections.
+*     OP 4: A( K+2, K+1 ) is already the element of T. Skip
+*     OP 5: A( K+3:N, K+1 ) scales for L by A( K+2, K+1 )
+                  CALL ZSCAL(N-K-2, ONE/A(K+2, K+1), A(K+3, K+1), 1)
+*     OP 6: Do a rank-2 update on A( K+3:N, K+3:N ),
+*           where a correction term is casted on A( K+3, K+2 )
+                  CALL ZAXPY( N-K-2, A(K+2, K+1) * A(K+2, K),
+     $                 A( K+3, K+1 ), 1,
+     $                 A( K+3, K+2 ), 1 )
+                  CALL ZSKR2( UPLO, N-K-2, ONE,
+     $                 A( K+3, K+1 ), 1,
+     $                 A( K+3, K+2 ), 1,
+     $                 A( K+3, K+3 ), LDA )
+*     OP 7&8: A( K+3:N, K+2 ) has two correction terms
+                  CALL ZAXPY( N-K-2, A(K+2, K+1),
+     $                 A( K+3, K   ), 1,
+     $                 A( K+3, K+2 ), 1 )
+                  CALL ZAXPY( N-K-2, A(K+2, K+1) * A(K+2, K) * (-2),
+     $                 A( K+3, K+1 ), 1,
+     $                 A( K+3, K+2 ), 1 )
                END IF
-
-*     Store Pivot
-               IPIV( K+1 ) = KP
-            ELSE
-               IPIV( K+1 ) = K+1
             END IF
  20      CONTINUE
 
