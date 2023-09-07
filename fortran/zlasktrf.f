@@ -94,8 +94,7 @@
      $                     ONE = (1.0D+0,0.0D+0) )
 
 *     .. Local Scalars ..
-      LOGICAL            NORMAL
-      INTEGER            K, K0, K1, KK, KP, NPANEL, WK
+      INTEGER            K, KK, KP, NPANEL, WK
       DOUBLE PRECISION   COLMAX
       DOUBLE COMPLEX     T
 *     ..
@@ -106,7 +105,6 @@
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           ZSCAL, ZSWAP, ZSKR2K, ZCOPY, ZGEMV, XERBLA
-      EXTERNAL           ZSKR2, ZGERU
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, MAX
@@ -116,9 +114,12 @@
 *     No safety checks, it's an internal function
 
       INFO = 0
-      NORMAL = .NOT. LSAME( MODE, 'P' )
 
-      STEP = 2
+      IF( LSAME( MODE, 'P' ) ) THEN
+         STEP = 2
+      ELSE
+         STEP = 1
+      END IF
 
 *     double the amount of panels before the block update, if STEP == 2
       NPANEL = NB * STEP
@@ -133,9 +134,7 @@
 *     of the matrix
 
          WK = 0
-         DO 10 K0=N, MAX(N-NPANEL+1, 2), -2
-         DO 11 K1=0, -1, -1
-            K = K0 + K1
+         DO 10 K=N, MAX(N-NPANEL+1, 2), -1
 *
 *     Update A(1:K,K) with all the accumulated transformations
 *     (if K<N: K=N,N-1 is updated when computing the Gauss vector,
@@ -143,7 +142,7 @@
 *
             KK = K-1
 
-            IF(.NOT. NORMAL .AND. K .LT. N) THEN
+            IF( K .LT. N) THEN
 
                IF( WK .GT. 0 ) THEN
                   A( K, K ) = ZERO
@@ -163,18 +162,12 @@
                END IF
             END IF
 
-            IF( K1.EQ.0 .OR. NORMAL ) THEN
+            IF( MOD(K, STEP) .EQ. 0) THEN
 *     For STEP == 1, process every column, but if
 *     STEP == 2, do only things for the even columns
 
 *     Find the pivot
-               IF( .NOT. NORMAL ) THEN
-                  KP = IZAMAX(K-1, A( 1, K ), 1)
-               ELSE
-*     FIXME: Inter-panel exchange fails?
-                  KP = IZAMAX(K-(N-NPANEL), A( N-NPANEL, K ), 1)
-     $            + (N-NPANEL)
-               END IF
+               KP = IZAMAX(K-1, A( 1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
 
                IF( COLMAX.EQ.ZERO ) THEN
@@ -207,6 +200,10 @@
                END IF
 
 *     (The column/row K+1 is not affected by the update)
+               IF( COLMAX .NE. ZERO ) THEN
+*     Store L(k+1) in A(k)
+                  CALL ZSCAL(K-2, ONE/A( K-1, K ), A(1, K), 1)
+               END IF
 
 *     Delay the update of the trailing submatrix (done at the beginning
 *     of each loop for every column of the first NB columns, and then
@@ -219,54 +216,10 @@
 *     STEP == 2 and an even column, do nothing
                IPIV( K-1 ) = K-1
             END IF
- 11      CONTINUE
-
-            K = K0
-
-            IF( NORMAL ) THEN
-*     Store L: two columns
-               CALL ZSCAL(K-2, ONE/A( K-1, K ), A(1, K), 1)
-               CALL ZSCAL(K-3, ONE/A( K-2, K-1 ), A(1, K-1), 1)
-*     Calculate SKR2's b-vector. Copy the leading zero at init
-               WK = WK + 1
-               CALL ZCOPY(K-2, A(1, K-2), 1, W(1, NB-WK+1), 1)
-               CALL ZAXPY( K-3, A(K-2, K-1) * A(K-2, K),
-     $              A( 1, K-1 ), 1,
-     $              W( 1, NB-WK+1 ), 1 )
-*     Update the next iter's target.
-               CALL ZAXPY( K-3, A(K-2, K-1),
-     $              A( 1, K   ), 1,
-     $              A( 1, K-2 ), 1 )
-               CALL ZAXPY( K-3, -A(K-2, K-1) * A(K-2, K),
-     $              A( 1, K-1 ), 1,
-     $              A( 1, K-2 ), 1 )
-*     Perform SKR2 partially.
-               IF( K-3-(N-NPANEL) .GT. 0) THEN
-                  CALL ZSKR2( UPLO, K-3-(N-NPANEL), ONE,
-     $                 A( N-NPANEL+1, K-1 ), 1,
-     $                 W( N-NPANEL+1, NB-WK+1 ), 1,
-     $                 A( N-NPANEL+1, N-NPANEL+1 ), LDA )
-                  CALL ZGERU( N-NPANEL, K-2-(N-NPANEL), ONE,
-     $                 A( 1, K-1 ), 1,
-     $                 W( N-NPANEL, NB-WK+1 ), 1,
-     $                 A( 1, N-NPANEL ), LDA )
-                  CALL ZGERU( N-NPANEL, K-2-(N-NPANEL), -ONE,
-     $                 W( 1, NB-WK+1 ), 1,
-     $                 A( N-NPANEL, K-1 ), 1,
-     $                 A( 1, N-NPANEL ), LDA )
-               END IF
-            END IF
  10      CONTINUE
 
 *     Now update the leading A(1:N-NB, 1:N-NB) submatrix in a level 3 update,
 *     if necessary
-         IF( N-NPANEL+1 .GT. 2 .AND. NORMAL ) THEN
-            CALL ZSKR2K( UPLO, "N", N-NPANEL-1, WK, ONE,
-     $           A(1, N-(WK-1)*STEP-1), LDA*STEP,
-     $           W(1,1), LDW, ONE, A(1, 1), LDA)
-            RETURN
-         END IF
-
          IF( N-NPANEL+1 .GT. 2 ) THEN
 
 *     For this we have to set the N-NB,N-NB+1 entry to zero,
@@ -309,9 +262,7 @@
 *     of the matrix
 
          WK = 0
-         DO 30 K0=1, MIN(NPANEL, N-1), 2
-         DO 31 K1=0, 1
-            K = K0 + K1
+         DO 30 K=1, MIN(NPANEL, N-1)
 
 *
 *     Update A(K+1:n,K+1) with all the accumulated transformations
@@ -322,7 +273,7 @@
 
             IF( K .GT. 1) THEN
 
-               IF( .NOT. NORMAL .AND. WK .GT. 0) THEN
+               IF( WK .GT. 0) THEN
                   A( K, K ) = ZERO
                   CALL ZGEMV( 'N', N-K+1, WK, +ONE, A( K, 1 ),
      $                 LDA*STEP, W( K, 1 ), LDW, ONE, A( K, K ), 1 )
@@ -332,23 +283,18 @@
                END IF
 
 *     Store the (updated) column K in W(:,WK)
-               IF( .NOT. NORMAL .AND. MOD(K, STEP) . EQ. 0 ) THEN
+               IF( MOD(K, STEP) . EQ. 0 ) THEN
                   WK = WK + 1
                   CALL ZCOPY(N-K+1, A(K, K), 1, W(K, WK), 1)
                END IF
             END IF
 
-            IF( K1.EQ.0 .OR. NORMAL) THEN
+            IF( MOD(K, STEP) .EQ. 1 .OR. STEP .EQ. 1) THEN
 *     For STEP == 1, process every column, but if
 *     STEP == 2, do only things for the odd columns
 
 *     Find the pivot
-               IF( .NOT. NORMAL ) THEN
-                  KP = K + IZAMAX(N-K, A( K+1, K ), 1)
-               ELSE
-*     FIXME: Inter-panel exchange fails?
-                  KP = K + IZAMAX(NPANEL-K, A( K+1, K ), 1)
-               END IF
+               KP = K + IZAMAX(N-K, A( K+1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
 
                IF( COLMAX.EQ.ZERO ) THEN
@@ -384,6 +330,10 @@
                END IF
 
 *     (The column/row K+1 is not affected by the update)
+               IF( COLMAX .NE. ZERO .AND. K .LE. N-2) THEN
+*     Store L(k+1) in A(k)
+                  CALL ZSCAL( N-K-1, ONE/A( K+1, K ), A(K+2, K), 1 )
+               END IF
 
 *     Delay the update of the trailing submatrix (done at the beginning
 *     of each loop for every column of the first NB columns, and then
@@ -396,53 +346,10 @@
 *     STEP == 2 and an even column, do nothing
                IPIV(K+1) = K+1
             END IF
- 31      CONTINUE
-
-            K = K0
-
-            IF( K .LE. N-2 .AND. NORMAL ) THEN
-*     Store L: two columns
-               CALL ZSCAL( N-K-1, ONE/A( K+1, K ), A(K+2, K), 1 )
-               CALL ZSCAL( N-K-2, ONE/A( K+2, K+1), A(K+3, K+1), 1 )
-*     Calculate SKR2's b-vector. Copy the leading zero at init
-               WK = WK + 1
-               CALL ZCOPY( N-K-1, A(K+2, K+2), 1, W(K+2, WK), 1 )
-               CALL ZAXPY( N-K-2, A(K+2, K+1) * A(K+2, K),
-     $              A( K+3, K+1 ), 1,
-     $              W( K+3, WK ), 1 )
-*     Update A(:, K+2) (the next iter's target)
-               CALL ZAXPY( N-K-2, A(K+2, K+1),
-     $              A( K+3, K   ), 1,
-     $              A( K+3, K+2 ), 1 )
-               CALL ZAXPY( N-K-2, -A(K+2, K+1) * A(K+2, K),
-     $              A( K+3, K+1 ), 1,
-     $              A( K+3, K+2 ), 1 )
-*     Perform SKR2 partially.
-               IF ( NPANEL-K-2 .GT. 0 ) THEN
-                  CALL ZSKR2( UPLO, NPANEL-K-2, ONE,
-     $                 A( K+3, K+1 ), 1,
-     $                 W( K+3, WK ), 1,
-     $                 A( K+3, K+3 ), LDA )
-                  CALL ZGERU( N-NPANEL, NPANEL-K-1, ONE,
-     $                 A( 1+NPANEL, K+1 ), 1,
-     $                 W( K+3, WK ), 1,
-     $                 A( 1+NPANEL, K+3 ), LDA )
-                  CALL ZGERU( N-NPANEL, NPANEL-K-1, -ONE,
-     $                 W( 1+NPANEL, WK ), 1,
-     $                 A( K+3, K+1 ), 1,
-     $                 A( 1+NPANEL, K+3 ), LDA )
-               END IF
-            END IF
  30      CONTINUE
 
 *     Now update the trailing A(NB+1:N, NB+1:N) submatrix in a level 3 update,
 *     if necessary
-         IF( NPANEL .LT. N-1 .AND. NORMAL ) THEN
-            CALL ZSKR2K( UPLO, "N", N-NPANEL-1, WK, ONE,
-     $           A(NPANEL+2,2), LDA*STEP,
-     $           W(NPANEL+2,1), LDW, ONE, A(NPANEL+2, NPANEL+2), LDA)
-            RETURN
-         END IF
 
          IF( NPANEL .LT. N-1) THEN
 *     For this we have to set the NB+1,NB entry to zero, but restore it later
