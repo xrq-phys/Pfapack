@@ -253,7 +253,6 @@
 *
 *     Factorize columns k-nb*step+1:k of A and use blocked code to
 *     update columns 1:k-nb*step
-               PRINT *, 'BLOCKED'
 *
                CALL ZLASKTRF( UPLO, MODE, K, NB, A, LDA,
      $                        IPIV, WORK, N, IINFO )
