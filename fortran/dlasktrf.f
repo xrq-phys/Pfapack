@@ -141,38 +141,12 @@
 *
             KK = K-1
 
-            IF(.NOT. NORMAL .AND. K .LT. N) THEN
-
-               IF( WK .GT. 0 ) THEN
-                  A( K, K ) = ZERO
-                  CALL DGEMV( 'N', K, WK, +ONE, A( 1, N-(WK-1)*STEP ),
-     $                 LDA*STEP, W( K, NB-WK+1 ), LDW, ONE,
-     $                 A( 1, K ), 1 )
-                  CALL DGEMV( 'N', K, WK, -ONE, W( 1, NB-WK+1 ),
-     $                 LDW, A( K, N-(WK-1)*STEP ), LDA*STEP, ONE,
-     $                 A( 1, K ), 1 )
-                  A( K, K ) = ZERO
-               END IF
-
-*     Store the (updated) column K in W(:,NB-WK+1)
-               IF( MOD(K, STEP).EQ.1 .OR. STEP.EQ.1 ) THEN
-                  WK = WK + 1
-                  CALL DCOPY(K, A(1, K), 1, W(1, NB-WK+1 ), 1)
-               END IF
-            END IF
-
             IF( K1.EQ.0 .OR. NORMAL ) THEN
 *     For STEP == 1, process every column, but if
 *     STEP == 2, do only things for the even columns
 
 *     Find the pivot
-               IF( .NOT. NORMAL ) THEN
-                  KP = IDAMAX(K-1, A( 1, K ), 1)
-               ELSE
-*     FIXME: Inter-panel exchange fails?
-                  KP = IDAMAX(K-(N-NPANEL), A( N-NPANEL, K ), 1)
-     $            + (N-NPANEL)
-               END IF
+               KP = IDAMAX(K-1, A( 1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
 
                IF( COLMAX.EQ.ZERO ) THEN
@@ -217,6 +191,16 @@
 *     STEP == 2 and an even column, do nothing
                IPIV( K-1 ) = K-1
             END IF
+
+*     Update A(1:KK-1,KK) with all the accumulated transformations
+            IF( WK .GT. 0 ) THEN
+               CALL DGEMV( 'N', KK-1, WK, +ONE, A( 1, N-(WK-1)*STEP-1 ),
+     $              LDA*STEP, W( KK, NB-WK+1 ), LDW, ONE,
+     $              A( 1, KK ), 1 )
+               CALL DGEMV( 'N', KK-1, WK, -ONE, W( 1, NB-WK+1 ),
+     $              LDW, A( KK, N-(WK-1)*STEP-1 ), LDA*STEP, ONE,
+     $              A( 1, KK ), 1 )
+            END IF
  11      CONTINUE
 
             K = K0
@@ -238,21 +222,6 @@
                CALL DAXPY( K-3, -A(K-2, K-1) * A(K-2, K),
      $              A( 1, K-1 ), 1,
      $              A( 1, K-2 ), 1 )
-*     Perform SKR2 partially.
-               IF( K-3-(N-NPANEL) .GT. 0) THEN
-                  CALL DSKR2( UPLO, K-3-(N-NPANEL), ONE,
-     $                 A( N-NPANEL+1, K-1 ), 1,
-     $                 W( N-NPANEL+1, NB-WK+1 ), 1,
-     $                 A( N-NPANEL+1, N-NPANEL+1 ), LDA )
-                  CALL DGER( N-NPANEL, K-2-(N-NPANEL), ONE,
-     $                 A( 1, K-1 ), 1,
-     $                 W( N-NPANEL, NB-WK+1 ), 1,
-     $                 A( 1, N-NPANEL ), LDA )
-                  CALL DGER( N-NPANEL, K-2-(N-NPANEL), -ONE,
-     $                 W( 1, NB-WK+1 ), 1,
-     $                 A( N-NPANEL, K-1 ), 1,
-     $                 A( 1, N-NPANEL ), LDA )
-               END IF
             END IF
  10      CONTINUE
 
