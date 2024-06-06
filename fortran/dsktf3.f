@@ -1,4 +1,4 @@
-      SUBROUTINE DSKTF3( UPLO, MODE, N, A, LDA, IPIV, W, INFO )
+      SUBROUTINE DSKTF3( UPLO, MODE, N, A, LDA, IPIV, W2, INFO )
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO, MODE
@@ -7,7 +7,7 @@
 *     .. Array Arguments ..
       INTEGER            IPIV( * )
       DOUBLE PRECISION   A( LDA, * )
-      DOUBLE PRECISION   W( * )
+      DOUBLE PRECISION   W2( * )
 *     ..
 *     .. Parameters ..
       DOUBLE PRECISION   ZERO, ONE
@@ -103,20 +103,20 @@
 ***********************************************************************
             IF( K.GT.1 .AND. K.LE.N-2 ) THEN
                IF( K.EQ.2 ) THEN
-                  W( 1 ) = -A( 3, 2 )
-                  W( 2 ) =  A( 3, 2 ) * A( K+1, 1 )
+                  W2( 1 ) = -A( 3, 2 )
+                  W2( 2 ) =  A( 3, 2 ) * A( K+1, 1 )
                ELSE
-                  W( 1 ) = -A( 3, 2 ) * A( K+1, 2 )
+                  W2( 1 ) = -A( 3, 2 ) * A( K+1, 2 )
                   DO 80 KK=2, K-2, 1
-                     W( KK ) = A( KK+1, KK ) * A( K+1, KK-1 )
-     $                        -A( KK+2, KK+1 ) * A( K+1, KK+1 )
+                     W2( KK ) = A( KK+1, KK ) * A( K+1, KK-1 )
+     $                        - A( KK+2, KK+1 ) * A( K+1, KK+1 )
  80               CONTINUE
-                  W( K-1 ) = A( K, K-1 ) * A( K+1, K-2 ) - A( K+1, K )
-                  W( K ) = A( K+1, K ) * A( K+1, K-1 )
+                  W2( K-1 ) = A( K, K-1 ) * A( K+1, K-2 ) - A( K+1, K )
+                  W2( K ) = A( K+1, K ) * A( K+1, K-1 )
                END IF
 
                CALL DGEMV( 'N', N-K-1, K, -ONE, A( K+2, 1 ), LDA,
-     $                      W, 1, ONE, A( K+2, K+1 ), 1 )
+     $                      W2, 1, ONE, A( K+2, K+1 ), 1 )
             END IF
 ***********************************************************************
 
