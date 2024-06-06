@@ -10,7 +10,7 @@ OBJECTS = \
 	ssktrd.o ssktrf.o \
 	dlasktrd.o dlasktrf.o dskbpf10.o dskbpfa.o dskbtrd.o \
 	dskmv.o dskpf10.o dskpfa.o dskr2.o dsktd2.o dsktf2.o \
-	dsktrd.o dsktrf.o \
+	dsktf3.o dsktrd.o dsktrf.o \
 	clasktrd.o clasktrf.o cskbpf10.o cskbpfa.o cskbtrd.o \
 	cskmv.o cskpf10.o cskpfa.o cskr2.o csktd2.o csktf2.o \
 	csktrd.o csktrf.o \

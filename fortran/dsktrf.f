@@ -167,7 +167,7 @@
 *  =====================================================================
 *
 *     .. Local Scalars ..
-      LOGICAL            LQUERY, UPPER, NORMAL
+      LOGICAL            LQUERY, UPPER, NORMAL, LEFT_LOOKING
       INTEGER            IINFO, J, K, K2, PIV, LWKOPT, NB, NBMIN, NPANEL
 *     ..
 *     .. External Functions ..
@@ -176,7 +176,7 @@
       EXTERNAL           LSAME, ILAENV
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DLASKTRF, DSKTF2, DSWAP, XERBLA
+      EXTERNAL           DLASKTRF, DSKTF2, DSKTF3, DSWAP, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX
@@ -188,10 +188,12 @@
       INFO = 0
       UPPER = LSAME( UPLO, 'U' )
       NORMAL = LSAME( MODE, 'N' )
+      LEFT_LOOKING = LSAME( MODE, 'L' )
       LQUERY = ( LWORK.EQ.-1 )
       IF( .NOT.UPPER .AND. .NOT.LSAME( UPLO, 'L' ) ) THEN
          INFO = -1
-      ELSE IF( .NOT.NORMAL .AND. .NOT.LSAME( MODE, 'P' ) ) THEN
+      ELSE IF( .NOT.NORMAL .AND. .NOT.LSAME( MODE, 'P' ) .AND.
+     $         .NOT.LEFT_LOOKING ) THEN
          INFO = -2
       ELSE IF( N.LT.0 ) THEN
          INFO = -3
@@ -312,8 +314,13 @@
 *     IPIV( K ) is overwritten by DSKTF2, need to restore it later
                PIV = IPIV( K )
 
-               CALL DSKTF2( UPLO, MODE, N-K+1, A( K, K ), LDA,
-     $                      IPIV( K ), IINFO )
+               IF ( LEFT_LOOKING .AND. LWORK.GE.N ) THEN
+                  CALL DSKTF3( UPLO, MODE, N-K+1, A( K, K ), LDA,
+     $                         IPIV( K ), WORK, IINFO )
+               ELSE
+                  CALL DSKTF2( UPLO, MODE, N-K+1, A( K, K ), LDA,
+     $                         IPIV( K ), IINFO )
+               END IF
 
                IPIV( K ) = PIV
 
