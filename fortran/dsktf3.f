@@ -1,13 +1,15 @@
-      SUBROUTINE DSKTF3( UPLO, MODE, N, A, LDA, IPIV, W2, INFO )
+      SUBROUTINE DSKTF3( UPLO, MODE, N, NB, A, LDA, IPIV, W, LDW,
+     $                   INIT, GLOBALK, INFO )
 *
 *     .. Scalar Arguments ..
       CHARACTER          UPLO, MODE
-      INTEGER            INFO, LDA, N
+      INTEGER            INFO, LDA, LDW, N, NB, GLOBALK
+      LOGICAL            INIT
 *     ..
 *     .. Array Arguments ..
       INTEGER            IPIV( * )
       DOUBLE PRECISION   A( LDA, * )
-      DOUBLE PRECISION   W2( * )
+      DOUBLE PRECISION   W( LDA, * )
 *     ..
 *     .. Parameters ..
       DOUBLE PRECISION   ZERO, ONE
@@ -16,15 +18,16 @@
 *     .. Local Scalars ..
       LOGICAL            UPPER, NORMAL
       INTEGER            K, KK, KP
-      DOUBLE PRECISION   COLMAX
+      DOUBLE PRECISION   COLMAX, DDOT
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
       INTEGER            IDAMAX
-      EXTERNAL           LSAME, IDAMAX
+      EXTERNAL           LSAME, IDAMAX, DDOT
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DSCAL, DSWAP, DSKR2, XERBLA
+      EXTERNAL           DSCAL, DSWAP, DSKR2, DGEMV, DGEMMT, XERBLA
+      EXTERNAL           DGEMM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          ABS, MAX
@@ -43,6 +46,8 @@
          INFO = -3
       ELSE IF( LDA.LT.MAX( 1, N ) ) THEN
          INFO = -5
+      ELSE IF( NB.LT.3 ) THEN
+         INFO = -9
       END IF
       IF( INFO.NE.0 ) THEN
          CALL XERBLA( 'DSKTF3', -INFO )
@@ -61,7 +66,7 @@
 
          IPIV( 1 ) = 1
 
-         DO 20 K=1, N-1, 1
+         DO 20 K=1, MIN(N-1, NB), 1
 
 *     Pivoting for one column
 *     Find the pivot
@@ -88,7 +93,8 @@
                CALL DSWAP( KP-KK-1, A( KK+1, KK ), 1,
      $                              A( KP, KK+1 ), LDA )
 
-               CALL DSWAP( K, A( KK, 1), LDA, A( KP, 1), LDA)
+               CALL DSWAP( K+GLOBALK-1, A( KK, 2-GLOBALK), LDA,
+     $                                  A( KP, 2-GLOBALK), LDA)
 
                CALL DSCAL(KP-KK, -ONE, A(KK+1, KK), 1)
                CALL DSCAL(KP-KK-1, -ONE, A(KP, KK+1), LDA)
@@ -101,22 +107,98 @@
 ***********************************************************************
 *     Left-looking updates
 ***********************************************************************
-            IF( K.GT.1 .AND. K.LE.N-2 ) THEN
-               IF( K.EQ.2 ) THEN
-                  W2( 1 ) = -A( 3, 2 )
-                  W2( 2 ) =  A( 3, 2 ) * A( K+1, 1 )
-               ELSE
-                  W2( 1 ) = -A( 3, 2 ) * A( K+1, 2 )
-                  DO 80 KK=2, K-2, 1
-                     W2( KK ) = A( KK+1, KK ) * A( K+1, KK-1 )
-     $                        - A( KK+2, KK+1 ) * A( K+1, KK+1 )
- 80               CONTINUE
-                  W2( K-1 ) = A( K, K-1 ) * A( K+1, K-2 ) - A( K+1, K )
-                  W2( K ) = A( K+1, K ) * A( K+1, K-1 )
-               END IF
+            IF( (K.GT.1 .OR. .NOT.INIT) .AND. K.LE.N-2 ) THEN
+               IF( NB.GT.1 .AND. K.EQ.NB ) THEN
+*     .. reusing KP as loop variable ..
+                  IF( INIT ) THEN
+                     DO KP=1, N-K-1, 1
+                        W( 1, KP ) = -A( 3, 2 ) * A( K+KP, 2 )
+                        DO KK=2, K-2, 1
+                           W( KK, KP ) = A( KK+1, KK ) * A( K+KP, KK-1 )
+     $                                  -A(KK+2, KK+1) * A( K+KP, KK+1 )
+                        END DO
+                        IF( KP.EQ.1 ) THEN
+                           W( K-1, KP ) = A( K, K-1 ) * A( K+KP, K-2 )
+     $                                   -A( K+1, K ) * ONE
+                        ELSE
+                           W( K-1, KP ) = A( K, K-1 ) * A( K+KP, K-2 )
+     $                                   -A( K+1, K ) * A( K+KP, K )
+                        END IF
+                        W( K, KP ) = A( K+1, K ) * A( K+KP, K-1 )
+                     END DO
 
-               CALL DGEMV( 'N', N-K-1, K, -ONE, A( K+2, 1 ), LDA,
-     $                      W2, 1, ONE, A( K+2, K+1 ), 1 )
+*                    CALL DGEMMT( 'L', 'N', 'N', N-K-1, K, -ONE,
+*    $                            A( K+2, 1 ), LDA, W, LDW, ONE,
+*    $                            A( K+2, K+1 ), LDA )
+*                    DO KK=1, N-K-1, 1
+                     DO KK=N-K-1, 1, -1
+                        CALL DGEMV ( 'N', N-K-KK, K, -ONE,
+     $                               A( K+1+KK, 1 ), LDA, W( 1, KK ), 1,
+     $                               ONE, A( K+1+KK, K+KK ), 1 )
+                     END DO
+                  ELSE
+                     DO KP=1, N-K-1, 1
+                        W( 1, KP ) = -A( 2, 1 ) * A( K+KP, 1 )
+                        DO KK=1, K-2, 1
+                           W(KK+1, KP) = A( KK+1, KK ) * A( K+KP, KK-1 )
+     $                                  -A(KK+2, KK+1) * A( K+KP, KK+1 )
+                        END DO
+                        IF( KP.EQ.1 ) THEN
+                           W( K, KP ) = A( K, K-1 ) * A( K+KP, K-2 )
+     $                                 -A( K+1, K ) * ONE
+                        ELSE
+                           W( K, KP ) = A( K, K-1 ) * A( K+KP, K-2 )
+     $                                 -A( K+1, K ) * A( K+KP, K )
+                        END IF
+                        W( K+1, KP ) = A( K+1, K ) * A( K+KP, K-1 )
+                     END DO
+
+*                    CALL DGEMMT( 'L', 'N', 'N', N-K-1, K, -ONE,
+*    $                            A( K+2, 1 ), LDA, W, LDW, ONE,
+*    $                            A( K+2, K+1 ), LDA )
+*                    DO KK=1, N-K-1, 1
+                     DO KK=N-K-1, 1, -1
+                        CALL DGEMV ( 'N', N-K-KK, K+1, -ONE,
+     $                               A( K+1+KK, 0 ), LDA, W( 1, KK ), 1,
+     $                               ONE, A( K+1+KK, K+KK ), 1 )
+                     END DO
+                  END IF
+
+               ELSE
+                  IF( K.EQ.1 ) THEN
+                     W( 1, 1 ) = -A( 2, 1 )
+                     W( 2, 1 ) =  A( 2, 1 ) * A( K+1, 0 )
+                  ELSE IF( K.EQ.2 .AND. INIT ) THEN
+                     W( 1, 1 ) = -A( 3, 2 )
+                     W( 2, 1 ) =  A( 3, 2 ) * A( K+1, 1 )
+                  ELSE IF( INIT ) THEN
+                     W( 1, 1 ) = -A( 3, 2 ) * A( K+1, 2 )
+                     DO KK=2, K-2, 1
+                        W( KK, 1 ) = A( KK+1, KK ) * A( K+1, KK-1 )
+     $                              -A( KK+2, KK+1 ) * A( K+1, KK+1 )
+                     END DO
+                     W( K-1, 1 ) = A( K, K-1 ) * A( K+1, K-2 )
+     $                            -A( K+1, K ) * ONE
+                     W( K, 1 ) = A( K+1, K ) * A( K+1, K-1 )
+                  ELSE
+                     W( 1, 1 ) = -A( 2, 1 ) * A( K+1, 1 )
+                     DO KK=1, K-2, 1
+                        W( KK+1, 1 ) = A( KK+1, KK ) * A( K+1, KK-1 )
+     $                                -A( KK+2, KK+1 ) * A( K+1, KK+1 )
+                     END DO
+                     W( K, 1 ) = A( K, K-1 ) * A( K+1, K-2 )
+     $                          -A( K+1, K ) * ONE
+                     W( K+1, 1 ) = A( K+1, K ) * A( K+1, K-1 )
+                  END IF
+
+                  IF( INIT ) THEN
+                     CALL DGEMV( 'N', N-K-1, K, -ONE, A( K+2, 1 ), LDA,
+     $                            W, 1, ONE, A( K+2, K+1 ), 1 )
+                  ELSE
+                     CALL DGEMV( 'N', N-K-1, K+1,-ONE, A( K+2, 0 ), LDA,
+     $                            W, 1, ONE, A( K+2, K+1 ), 1 )
+                  END IF
+               END IF
             END IF
 ***********************************************************************
 

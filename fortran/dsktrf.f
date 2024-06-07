@@ -188,7 +188,7 @@
       INFO = 0
       UPPER = LSAME( UPLO, 'U' )
       NORMAL = LSAME( MODE, 'N' )
-      LEFT_LOOKING = LSAME( MODE, 'L' )
+      LEFT_LOOKING = LSAME( MODE, 'L' ) .AND. LWORK.GE.N
       LQUERY = ( LWORK.EQ.-1 )
       IF( .NOT.UPPER .AND. .NOT.LSAME( UPLO, 'L' ) ) THEN
          INFO = -1
@@ -239,7 +239,13 @@
 *     Quick return if possible
       IF( N .EQ. 0 ) RETURN
 
-      NPANEL = MIN(NB*2, N)
+      IF( LEFT_LOOKING ) THEN
+*     In action, W is used more as (NB+1, N-NPANEL)
+         NPANEL = MIN(NB, N)
+         WRITE(*, *) NPANEL
+      ELSE
+         NPANEL = MIN(NB*2, N)
+      END IF
 
       IF( UPPER ) THEN
 *
@@ -303,8 +309,13 @@
 *     Factorize columns k:k+nb-1 of A and use blocked code to
 *     update columns k+nb-1:n
 *
-               CALL DLASKTRF( UPLO, MODE, N-K+1, NB, A( K, K ), LDA,
-     $                        IPIV( K ), WORK, N, IINFO )
+               IF( LEFT_LOOKING ) THEN
+                  CALL DSKTF3( UPLO, MODE, N-K+1, NB, A( K, K ), LDA,
+     $                         IPIV( K ), WORK, NB+1, K.EQ.1, K, IINFO )
+               ELSE
+                  CALL DLASKTRF( UPLO, MODE, N-K+1, NB, A( K, K ), LDA,
+     $                           IPIV( K ), WORK, N, IINFO )
+               END IF
 
                K2 = K + NPANEL
             ELSE
@@ -314,9 +325,9 @@
 *     IPIV( K ) is overwritten by DSKTF2, need to restore it later
                PIV = IPIV( K )
 
-               IF ( LEFT_LOOKING .AND. LWORK.GE.N ) THEN
-                  CALL DSKTF3( UPLO, MODE, N-K+1, A( K, K ), LDA,
-     $                         IPIV( K ), WORK, IINFO )
+               IF( LEFT_LOOKING ) THEN
+                  CALL DSKTF3( UPLO, MODE, N-K+1, N, A( K, K ), LDA,
+     $                         IPIV( K ), WORK, N, K.EQ.1, K, IINFO )
                ELSE
                   CALL DSKTF2( UPLO, MODE, N-K+1, A( K, K ), LDA,
      $                         IPIV( K ), IINFO )
@@ -339,7 +350,8 @@
  40         CONTINUE
 
 *     Perform the missing row interchanges in the leading K-1 columns
-            IF( K .GT. 1 ) THEN
+*     NOTE: Left-looking swaps globally: We have to do this somehow
+            IF( K.GT.1 .AND. .NOT.LEFT_LOOKING ) THEN
                DO 50 J=K+1, K2
                   CALL DSWAP( K-1, A( J, 1 ), LDA,
      $                 A( IPIV( J ), 1 ), LDA )
