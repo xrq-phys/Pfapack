@@ -9,7 +9,7 @@
 *     .. Array Arguments ..
       INTEGER            IPIV( * )
       DOUBLE PRECISION   A( LDA, * )
-      DOUBLE PRECISION   W( LDA, * )
+      DOUBLE PRECISION   W( LDW, * )
 *     ..
 *     .. Parameters ..
       DOUBLE PRECISION   ZERO, ONE
@@ -127,15 +127,9 @@
                         W( K, KP ) = A( K+1, K ) * A( K+KP, K-1 )
                      END DO
 
-*                    CALL DGEMMT( 'L', 'N', 'N', N-K-1, K, -ONE,
-*    $                            A( K+2, 1 ), LDA, W, LDW, ONE,
-*    $                            A( K+2, K+1 ), LDA )
-*                    DO KK=1, N-K-1, 1
-                     DO KK=N-K-1, 1, -1
-                        CALL DGEMV ( 'N', N-K-KK, K, -ONE,
-     $                               A( K+1+KK, 1 ), LDA, W( 1, KK ), 1,
-     $                               ONE, A( K+1+KK, K+KK ), 1 )
-                     END DO
+                     CALL DGEMMT( 'L', 'N', 'N', N-K-1, K, -ONE,
+     $                            A( K+2, 1 ), LDA, W, LDW, ONE,
+     $                            A( K+2, K+1 ), LDA )
                   ELSE
                      DO KP=1, N-K-1, 1
                         W( 1, KP ) = -A( 2, 1 ) * A( K+KP, 1 )
@@ -153,15 +147,9 @@
                         W( K+1, KP ) = A( K+1, K ) * A( K+KP, K-1 )
                      END DO
 
-*                    CALL DGEMMT( 'L', 'N', 'N', N-K-1, K, -ONE,
-*    $                            A( K+2, 1 ), LDA, W, LDW, ONE,
-*    $                            A( K+2, K+1 ), LDA )
-*                    DO KK=1, N-K-1, 1
-                     DO KK=N-K-1, 1, -1
-                        CALL DGEMV ( 'N', N-K-KK, K+1, -ONE,
-     $                               A( K+1+KK, 0 ), LDA, W( 1, KK ), 1,
-     $                               ONE, A( K+1+KK, K+KK ), 1 )
-                     END DO
+                     CALL DGEMMT( 'L', 'N', 'N', N-K-1, K+1, -ONE,
+     $                            A( K+2, 0 ), LDA, W, LDW, ONE,
+     $                            A( K+2, K+1 ), LDA )
                   END IF
 
                ELSE
