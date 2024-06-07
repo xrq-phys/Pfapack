@@ -242,7 +242,6 @@
       IF( LEFT_LOOKING ) THEN
 *     In action, W is used more as (NB+1, N-NPANEL)
          NPANEL = MIN(NB, N)
-         WRITE(*, *) NPANEL
       ELSE
          NPANEL = MIN(NB*2, N)
       END IF
