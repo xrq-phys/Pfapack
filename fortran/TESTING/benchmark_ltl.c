@@ -16,6 +16,7 @@ int dsktrf( const char uplo, const char mode, const int n, double *a, const int 
 #include <stdlib.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct timespec timespec_t;
 
@@ -34,19 +35,25 @@ int64_t timediff_ns(timespec_t start, timespec_t end)
 
 int main(const int argc, const char *argv[]) {
   int nmax, nmin, nstep;
+  bool blocked = false;
   if ( argc < 4 ) {
-    fprintf(stderr, "./.x nmax nmin nstep\n");
+    fprintf(stderr, "./.x nmax nmin nstep [blocked=False]\n");
     return -1;
   }
   nmax  = atoi(argv[1]);
   nmin  = atoi(argv[2]);
   nstep = atoi(argv[3]);
-  int nexp = 100;
+  if ( argc >= 5 ) {
+    if ( argv[4][0] == 'T' || argv[4][0] == 't' ) {
+      blocked = true;
+    }
+  }
+  int nexp = 10;
 
   double *A = (double *)malloc(sizeof(double) * nmax * nmax * 3);
   double *A2 = A + nmax * nmax;
   double *A3 = A2 + nmax * nmax;
-  double *W = (double *)malloc(sizeof(double) * nmax);
+  double *W = (double *)malloc(sizeof(double) * nmax * nmax);
   int *iPiv = (int *)malloc(sizeof(int) * nmax);
 
   {
@@ -55,17 +62,26 @@ int main(const int argc, const char *argv[]) {
     int siz = nmax * nmax;
     dlarnv_( &idist, iseed, &siz, A );
   }
-  fprintf(stdout, "#n, right- vs. left-looking err, right-looking msec, left-looking msec\n");
+  fprintf(stdout, "#n, right- vs. left-looking diff., right-looking msec, left-looking msec\n");
 
   for ( int n = nmax; n >= nmin; n -= nstep ) {
+    int lwork_r, lwork_l;
     int siz = n * n;
     int inc = 1;
     double dmone = -1.0;
     dcopy_( &siz, A, &inc, A2, &inc );
     dcopy_( &siz, A, &inc, A3, &inc );
 
-    dsktrf( 'l', 'n', n, A2, n, iPiv, W, 1 );
-    dsktrf( 'l', 'l', n, A3, n, iPiv, W, n );
+    if ( !blocked ) {
+      lwork_r = 1;
+      lwork_l = n;
+    } else {
+      lwork_r = nmax * nmax;
+      lwork_l = nmax * nmax;
+    }
+
+    dsktrf( 'l', 'n', n, A2, n, iPiv, W, lwork_r );
+    dsktrf( 'l', 'l', n, A3, n, iPiv, W, lwork_l );
 
     daxpy_( &siz, &dmone, A2, &inc, A3, &inc );
     for ( int i = 0; i < n; ++i ) { A3[i + i * n] = 0; }
@@ -75,11 +91,11 @@ int main(const int argc, const char *argv[]) {
     timespec_t time1, time2, time3;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     for ( int i = 0; i < nexp; ++i ) {
-      dsktrf( 'l', 'l', n, A3, n, iPiv, W, n );
+      dsktrf( 'l', 'l', n, A3, n, iPiv, W, lwork_l );
     }
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     for ( int i = 0; i < nexp; ++i ) {
-      dsktrf( 'l', 'n', n, A2, n, iPiv, W, 1 );
+      dsktrf( 'l', 'n', n, A2, n, iPiv, W, lwork_r );
     }
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time3);
 
