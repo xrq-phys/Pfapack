@@ -39,7 +39,9 @@ OBJECTS += \
 	zskr2k.o
 endif
 
-all: libpfapack.a
+all: lib dll
+
+lib: libpfapack.a
 
 dll: libpfapack.so
 
