@@ -64,7 +64,7 @@
       ELSE
 *     Factorize A as L * T * L^T using the lower triangle of A
 
-         IPIV( 1 ) = 1
+         IF ( INIT ) IPIV( 1 ) = 1
 
          DO 20 K=1, MIN(N-1, NB), 1
 
