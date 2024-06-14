@@ -54,7 +54,8 @@ int main(const int argc, const char *argv[]) {
   double *A2 = A + nmax * nmax;
   double *A3 = A2 + nmax * nmax;
   double *W = (double *)malloc(sizeof(double) * nmax * nmax);
-  int *iPiv = (int *)malloc(sizeof(int) * nmax);
+  int *iPiv2 = (int *)malloc(sizeof(int) * nmax);
+  int *iPiv3 = (int *)malloc(sizeof(int) * nmax);
 
   {
     int idist = 3;
@@ -62,12 +63,13 @@ int main(const int argc, const char *argv[]) {
     int siz = nmax * nmax;
     dlarnv_( &idist, iseed, &siz, A );
   }
-  fprintf(stdout, "#n, right- vs. left-looking diff., right-looking msec, left-looking msec\n");
+  fprintf(stdout, "#n, right- vs. left-looking diff., right-looking msec, left-looking msec, ipiv mismatch\n");
 
   for ( int n = nmax; n >= nmin; n -= nstep ) {
     int lwork_r, lwork_l;
     int siz = n * n;
     int inc = 1;
+    int npm = 0;
     double dmone = -1.0;
     dcopy_( &siz, A, &inc, A2, &inc );
     dcopy_( &siz, A, &inc, A3, &inc );
@@ -80,28 +82,30 @@ int main(const int argc, const char *argv[]) {
       lwork_l = nmax * nmax;
     }
 
-    dsktrf( 'l', 'n', n, A2, n, iPiv, W, lwork_r );
-    dsktrf( 'l', 'l', n, A3, n, iPiv, W, lwork_l );
+    dsktrf( 'l', 'n', n, A2, n, iPiv2, W, lwork_r );
+    dsktrf( 'l', 'l', n, A3, n, iPiv3, W, lwork_l );
 
     daxpy_( &siz, &dmone, A2, &inc, A3, &inc );
     for ( int i = 0; i < n; ++i ) { A3[i + i * n] = 0; }
 
     double diff_norm = dlange_( "F", &n, &n, A3, &n, W );
+    for ( int i = 0; i < n; ++i ) { npm += ( iPiv2[i] != iPiv3[i] ); }
 
     timespec_t time1, time2, time3;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
     for ( int i = 0; i < nexp; ++i ) {
-      dsktrf( 'l', 'l', n, A3, n, iPiv, W, lwork_l );
+      dsktrf( 'l', 'l', n, A3, n, iPiv3, W, lwork_l );
     }
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     for ( int i = 0; i < nexp; ++i ) {
-      dsktrf( 'l', 'n', n, A2, n, iPiv, W, lwork_r );
+      dsktrf( 'l', 'n', n, A2, n, iPiv2, W, lwork_r );
     }
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time3);
 
-    fprintf(stdout, "%8d %18.14e %18.4e %18.4e\n", n, diff_norm,
+    fprintf(stdout, "%8d %18.14e %18.4e %18.4e %d\n", n, diff_norm,
         (double)timediff_ns(time2, time3) / nexp / 1000000,
-        (double)timediff_ns(time1, time2) / nexp / 1000000);
+        (double)timediff_ns(time1, time2) / nexp / 1000000,
+        npm);
   }
 
   free(A);
