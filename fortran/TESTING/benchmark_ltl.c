@@ -108,7 +108,7 @@ int main(const int argc, const char *argv[]) {
         npm);
   }
   // Zero placeholder
-  fprintf(stdout, "%8d %18.14e %18.4e %18.4e %d\n", 0, 0, 1e-20, 1e-20, 0);
+  fprintf(stdout, "%8d %18.14e %18.4e %18.4e %d\n", 0, 0.0, 1e-20, 1e-20, 0);
 
   free(A);
   free(W);
