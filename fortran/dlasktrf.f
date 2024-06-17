@@ -287,35 +287,12 @@
 *
             KK = K+1
 
-            IF( K .GT. 1) THEN
-
-               IF( .NOT. NORMAL .AND. WK .GT. 0) THEN
-                  A( K, K ) = ZERO
-                  CALL DGEMV( 'N', N-K+1, WK, +ONE, A( K, 1 ),
-     $                 LDA*STEP, W( K, 1 ), LDW, ONE, A( K, K ), 1 )
-                  CALL DGEMV( 'N', N-K+1, WK, -ONE, W( K, 1 ),
-     $                 LDW, A( K, 1 ), LDA*STEP, ONE, A( K, K ), 1 )
-                  A( K, K ) = ZERO
-               END IF
-
-*     Store the (updated) column K in W(:,WK)
-               IF( .NOT. NORMAL .AND. MOD(K, STEP) . EQ. 0 ) THEN
-                  WK = WK + 1
-                  CALL DCOPY(N-K+1, A(K, K), 1, W(K, WK), 1)
-               END IF
-            END IF
-
             IF( K1.EQ.0 .OR. NORMAL) THEN
 *     For STEP == 1, process every column, but if
 *     STEP == 2, do only things for the odd columns
 
 *     Find the pivot
-               IF( .NOT. NORMAL ) THEN
-                  KP = K + IDAMAX(N-K, A( K+1, K ), 1)
-               ELSE
-*     FIXME: Inter-panel exchange fails?
-                  KP = K + IDAMAX(NPANEL-K, A( K+1, K ), 1)
-               END IF
+               KP = K + IDAMAX(N-K, A( K+1, K ), 1)
                COLMAX = ABS( A( KP, K ) )
 
                IF( COLMAX.EQ.ZERO ) THEN
@@ -363,6 +340,13 @@
 *     STEP == 2 and an even column, do nothing
                IPIV(K+1) = K+1
             END IF
+
+            IF( WK .GT. 0 ) THEN
+               CALL DGEMV( 'N', N-KK, WK, +ONE, A( KK+1, 2 ),
+     $              LDA*STEP, W( KK, 1 ), LDW, ONE, A( KK+1, KK ), 1 )
+               CALL DGEMV( 'N', N-KK, WK, -ONE, W( KK+1, 1 ),
+     $              LDW, A( KK, 2 ), LDA*STEP, ONE, A( KK+1, KK ), 1 )
+            END IF
  31      CONTINUE
 
             K = K0
@@ -384,21 +368,6 @@
                CALL DAXPY( N-K-2, -A(K+2, K+1) * A(K+2, K),
      $              A( K+3, K+1 ), 1,
      $              A( K+3, K+2 ), 1 )
-*     Perform SKR2 partially.
-               IF ( NPANEL-K-2 .GT. 0 ) THEN
-                  CALL DSKR2( UPLO, NPANEL-K-2, ONE,
-     $                 A( K+3, K+1 ), 1,
-     $                 W( K+3, WK ), 1,
-     $                 A( K+3, K+3 ), LDA )
-                  CALL DGER( N-NPANEL, NPANEL-K-1, ONE,
-     $                 A( 1+NPANEL, K+1 ), 1,
-     $                 W( K+3, WK ), 1,
-     $                 A( 1+NPANEL, K+3 ), LDA )
-                  CALL DGER( N-NPANEL, NPANEL-K-1, -ONE,
-     $                 W( 1+NPANEL, WK ), 1,
-     $                 A( K+3, K+1 ), 1,
-     $                 A( 1+NPANEL, K+3 ), LDA )
-               END IF
             END IF
  30      CONTINUE
 
