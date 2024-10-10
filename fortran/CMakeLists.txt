@@ -4,8 +4,8 @@ ENABLE_LANGUAGE(Fortran)
 SET(SOURCES_PFAPACK
 	dlasktrd.f dskmv.f dskr2.f dsktd2.f dsktrd.f
 	zlasktrd.f zskmv.f zskr2.f zsktd2.f zsktrd.f
-	dlasktrf.f dskpfa.f dsktf2.f dsktrf.f
-	zlasktrf.f zskpfa.f zsktf2.f zsktrf.f
+	dlasktrf.f dskpfa.f dsktf2.f dsktf3.f dsktrf.f
+	zlasktrf.f zskpfa.f zsktf2.f          zsktrf.f
 	)
 if(USE_GEMMT)
     SET(SOURCES_PFAPACK
