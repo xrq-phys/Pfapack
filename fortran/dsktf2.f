@@ -211,6 +211,7 @@
 *     Pivoting for one or two columns
          DO 11 K1=0, -1, -1
             K = K0 + K1
+            IF( K .GE. 2 ) THEN
 *     Either all columns or only the even ones (MODE = 'P')
             IF( K1.EQ.0 .OR. NORMAL ) THEN
 *     Find the pivot
@@ -228,7 +229,6 @@
 *     swap rows and columns K+1 and IMAX in the
 *     full sub-matrix A(1:N,1:N)
                KK = K-1
-               IF( KK .LT. 1 ) CONTINUE
 
                IF( KP .NE. KK ) THEN
                   CALL DSWAP( KP-1, A( 1, KK ), 1, A( 1, KP ), 1)
@@ -244,6 +244,7 @@
                IPIV( K-1 ) = KP
             ELSE
                IPIV( K-1 ) = K-1
+            END IF
             END IF
 11       CONTINUE
 
@@ -287,6 +288,7 @@
 *     Pivoting for one or two columns
             DO 21 K1=0, 1
                K = K0 + K1
+               IF( K .LE. N-1 ) THEN
                IF( K1.EQ.0 .OR. NORMAL ) THEN
 *     Find the pivot
                   KP = K + IDAMAX(N-K, A( K+1, K ), 1)
@@ -322,6 +324,7 @@
                   IPIV( K+1 ) = KP
                ELSE
                   IPIV( K+1 ) = K+1
+               END IF
                END IF
  21         CONTINUE
 
